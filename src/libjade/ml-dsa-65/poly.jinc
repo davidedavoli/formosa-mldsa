@@ -568,6 +568,8 @@ fn _poly_uniform(reg ptr u32[N] a,
 
   while { ctr4 = ctr + 4; } (ctr4 < N) {
     state, a, pos, ctr, q, buf = _stream128_refill_buffer(state, a, pos, ctr, q);
+    a = #dfence_ptr(a);
+    ctr = #dfence(ctr);
 
     a, ctr = __extr_rej_sample(a, ctr, buf[0], q);  // 3 bytes in buf[0]
 
@@ -585,6 +587,8 @@ fn _poly_uniform(reg ptr u32[N] a,
 
   while (ctr < N) {
     state, a, pos, ctr, q, buf = _stream128_refill_buffer(state, a, pos, ctr, q);
+    a = #dfence_ptr(a);
+    ctr = #dfence(ctr);
 
     a, ctr = __extr_rej_sample(a, ctr, buf[0], q);  // 3 bytes in buf[0]
 
@@ -654,19 +658,30 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
   while { ctr8 = ctr + 8; } (ctr8 < N) {
 
     state, a, pos, ctr, n205, buf = _stream256_refill_buffer(state, a, pos, ctr, n205);
+    //DD again, I have to declassify buf
+    #declassify buf = buf;
+    a = #dfence_ptr(a);
+    ctr = #dfence(ctr);
+
     inline int i;
     for i = 0 to 8 {
       t = __ubfx(buf, 4*i, 4);
+      t = #dfence(t);
       a, ctr = rej_eta(a, ctr, t, n205);
     }     
   }
 
   while (ctr < N) {
     state, a, pos, ctr, n205, buf = _stream256_refill_buffer(state, a, pos, ctr, n205);
+    //DD again, I have to declassify buf
+    #declassify buf = buf;
+    a = #dfence_ptr(a);
+    ctr = #dfence(ctr);
     inline int i;
     for i = 0 to 8 {
       if ((i == 0) || (ctr < N)) {
         t = __ubfx(buf, 4*i, 4);
+	t = #dfence(t);
         a, ctr = rej_eta(a, ctr, t, n205);
       }
     }       
@@ -713,6 +728,7 @@ fn _poly_uniform_gamma1(reg ptr u32[N] a,
   buf_[  POLYZ_LAST : POLYZ_LAST_SZ] = bufc;
 
   buf = buf_; a = sa;
+  a = #dfence_ptr(a);
   a = _polyz_unpack(a, buf);
   return a;
 }

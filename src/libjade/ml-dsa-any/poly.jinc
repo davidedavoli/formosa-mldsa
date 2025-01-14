@@ -165,7 +165,7 @@ fn _poly_add2_inplace(reg ptr u32[N] a) -> reg ptr u32[N]
 **************************************************/
 
 /* FIXME: Add a warning indicating that the function use declassify and should be use carefully */
-inline fn __poly_chknorm(#secret reg ptr u32[N] a, reg u32 B) -> reg u32 {
+inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B) -> reg u32 {
   reg u32 r;
   reg u32 q;
   r = 0;
@@ -192,7 +192,8 @@ inline fn __poly_chknorm(#secret reg ptr u32[N] a, reg u32 B) -> reg u32 {
 
 
     inline bool ge;
-    #declassify ge = __cmp_ge_s(t, B); 
+    #declassify ge = __cmp_ge_s(t, B);
+
     
     if (ge) { 
       r = 1;
@@ -221,7 +222,7 @@ fn _poly_chknorm(reg ptr u32[N] a, reg u32 B) -> reg u32 {
 *              - const uint8_t mu[]: byte array containing seed of length SEEDBYTES
 **************************************************/
 
-fn _poly_challenge(reg ptr u32[N] c, #secret reg ptr u8[CTILDEBYTES] seed) -> reg ptr u32[N]
+fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed) -> reg ptr u32[N]
 {
   stack u32[PQC_SHAKECTX_BYTES*2] _state;
   reg ptr u32[PQC_SHAKECTX_BYTES*2] state;
@@ -235,12 +236,14 @@ fn _poly_challenge(reg ptr u32[N] c, #secret reg ptr u8[CTILDEBYTES] seed) -> re
   // equivalent to shake256_inc_absorb_jazz(state, seed, SEEDBYTES) and shake256_inc_finalize_jazz(state)
   state = __SHAKE256_init_ctilde_ref(state, seed);
   c = cs;
+  c = #dfence_ptr(c);
 
   reg u32[2] signs;
   stack u32[2] s_signs;
   stack u32 js;
 
   reg u32 aux, pos, i;
+  state = #dfence_ptr(state);
   signs[0] = state[u32 0];
   signs[1] = state[u32 1];
 
@@ -268,15 +271,22 @@ fn _poly_challenge(reg ptr u32[N] c, #secret reg ptr u8[CTILDEBYTES] seed) -> re
           pos = 0;
       }
 
+      j = #dfence(j);
       b = (32u) state[u8 (int) pos];
+      #declassify b = b; // This come from a rejection sampling arguments
+      b = #dfence(b);
+      
+      
       /* We can certainly declassify the value of b */
       pos += 1;
-      
-      #declassify test = __cmp_gt_u(j, b); /* b > j */      
+
+      test = __cmp_gt_u(j, b); /* b > j */      
 
     } (test)
 
     #declassify b = b; // This come from a rejection sampling arguments
+    b = #dfence(b);
+    c = #dfence_ptr(c);
     aux = c[(int) b];
     c[(int) j] = aux;
 
@@ -351,7 +361,9 @@ inline fn __poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h) -> reg ptr
   i = 0;
   while(i < N) {
     b_ = b[(int) i];
+    b_ = #dfence(b_);
     h_ = h[(int) i];
+    h_ = #dfence(h_);
     b_ = __use_hint(b_, h_, q);
     b[(int) i] = b_;
     i += 1;

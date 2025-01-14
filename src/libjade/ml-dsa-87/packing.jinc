@@ -11,6 +11,8 @@
 *
 * Returns 1 in case of malformed signature; otherwise 0.
 **************************************************/
+
+
 fn _unpack_sig(reg ptr u8[CTILDEBYTES] c, 
                reg ptr u32[polyvecl] z, 
                reg ptr u32[polyveck] h, 
@@ -18,7 +20,9 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
          reg ptr u8[CTILDEBYTES], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32 {
     // fixme this should be in the export function not here
     sig = sig; c = c; z = z; h = h;
-
+    z = #dfence_ptr(z);
+    sig = #dfence_ptr(sig);
+    
     reg u32 status, r0, r1, j, sj, sjm1, sroi, k;
     inline int i;
     inline int start_pos;
@@ -42,6 +46,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
     }
 
     () = #unspill(c, h);
+    h = #dfence_ptr(h);
     status = 0;
     r0 = 0;
     r1 = 1;
@@ -57,8 +62,9 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
         while (j < N) {
           nh[j] = r0;
           j += 1;
-        } 
+        }
         sroi = (32u)pptsig[OMEGA + i];
+	sroi = #dfence(sroi);
         if (sroi <32u k) {
            status = 1;
         }
@@ -69,12 +75,14 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
         if (status == 0) {
           j = k;
           sjm1 = (32u)pptsig[j];
+	  sjm1 = #dfence(sjm1);
 	  if (j <32u sroi) {
             nh[sjm1] = r1;
 	  }
           j += 1; 
           // this is safe because j = k <= OMEGA < OMEGA + K
-          sj = (32u)pptsig[j]; 
+          sj = (32u)pptsig[j];
+	  sj = #dfence(sj);
           while (j <32u sroi) {
             if (sj <=32u sjm1) { 
               status = 1;
@@ -85,7 +93,8 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
               // for the next iteration
               sjm1 = sj;
               // this is safe because j <= sroi <= OMEGA < OMEGA + K
-              sj = (32u)pptsig[j];                
+              sj = (32u)pptsig[j];
+              sj = #dfence(sj);
             }              
           }
 
@@ -94,13 +103,14 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
           }
           // END FIXME : local function
         }
-        h[i * N : N] = nh; 
+        h[i * N : N] = nh;
       }
     }
     if (status == 0) {
       j = k;
       while(j <32u OMEGA) {
         sj = (32u)pptsig[j];
+	sj = #dfence(sj);
         if (sj != 0) {
           j = OMEGA;
           status = 1; 
