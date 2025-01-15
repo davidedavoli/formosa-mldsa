@@ -179,11 +179,13 @@ inline fn __add_zero_after_add(reg ptr u32[25*2] state, inline int nbbytes, reg 
 
   #inline if (nbbytes % 2 == 1) { 
     state[u8 (int) nbbytes] = zero;
-  }
+  } 
+
   nbbytes = nbbytes + ((nbbytes % 2 == 1) ? 1 : 0);
   #inline if (nbbytes % 4 == 2) { 
     state[u16 (int) (nbbytes / 2)] = zero;
   }
+
   nbbytes = nbbytes + ((nbbytes % 4 == 2) ? 2 : 0);
 
   i = (nbbytes / 4);
@@ -194,6 +196,7 @@ inline fn __add_zero_after_add(reg ptr u32[25*2] state, inline int nbbytes, reg 
     i += 1;
   } 
   msf = #update_msf(!(i < 25*2), msf);
+
   return state, msf;     
 }
 
@@ -252,11 +255,14 @@ fn _stream128_refill_buffer(
 ) -> reg ptr u32[25*2], reg ptr u32[N], reg u32, reg u32, reg u32, reg u32[3], reg u32
 {
   if (pos == SHAKE128_RATE >> 2) {
+    msf = #update_msf((pos == SHAKE128_RATE >> 2), msf);
     stack u32 sctr;
     stack ptr u32[N] sa;
     sctr = ctr; sa = a;
     state, msf = _keccakf1600_ref(state, msf); 
     a = sa; pos = 0; ctr = sctr; q = __Q();
+  } else {
+    msf = #update_msf(!(pos == SHAKE128_RATE >> 2), msf);
   }
   reg u32[3] buf;
   inline int i;

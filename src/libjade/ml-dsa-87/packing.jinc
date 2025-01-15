@@ -14,8 +14,9 @@
 fn _unpack_sig(reg ptr u8[CTILDEBYTES] c, 
                reg ptr u32[polyvecl] z, 
                reg ptr u32[polyveck] h, 
-               reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig) ->
-         reg ptr u8[CTILDEBYTES], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32 {
+               reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig,
+               reg u32 msf) ->
+         reg ptr u8[CTILDEBYTES], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32, reg u32 {
     // fixme this should be in the export function not here
     sig = sig; c = c; z = z; h = h;
 
@@ -37,7 +38,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
     for i = 0 to L {
       nz = z[i * N: N];
       nsig = sig[start_pos : POLYZ_PACKEDBYTES];
-      z[i * N: N] = _polyz_unpack(nz, nsig);
+      z[i * N: N], msf = _polyz_unpack(nz, nsig, msf);
       start_pos += POLYZ_PACKEDBYTES;
     }
 
@@ -110,5 +111,5 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
       }
     }         
 
-    return c, z, h, status;
+    return c, z, h, status, msf;
 }

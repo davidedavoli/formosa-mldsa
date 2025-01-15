@@ -150,10 +150,10 @@ fn _crypto_sign_keypair_seed(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, 
     /* Matrix-vector multiplication */
     s1hat = copy_polyvecl(s1hat, s1);
 
-    s1hat = _polyvecl_ntt(s1hat);
+    s1hat, msf = _polyvecl_ntt(s1hat, msf);
     t1 = _polyvec_matrix_pointwise_montgomery(t1, mat, s1hat);
     t1 = _polyveck_reduce(t1);
-    t1 = _polyveck_invntt_tomont(t1);
+    t1, msf = _polyveck_invntt_tomont(t1, msf);
 
     /* Add error vector s2 */
     t1 = _polyveck_add_inplace(t1, s2);
@@ -228,10 +228,10 @@ fn _crypto_sign_keypair(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, reg p
     /* Matrix-vector multiplication */
     s1hat = copy_polyvecl(s1hat, s1);
 
-    s1hat = _polyvecl_ntt(s1hat);
+    s1hat, msf = _polyvecl_ntt(s1hat, msf);
     t1 = _polyvec_matrix_pointwise_montgomery(t1, mat, s1hat);
     t1 = _polyveck_reduce(t1);
-    t1 = _polyveck_invntt_tomont(t1);
+    t1, msf = _polyveck_invntt_tomont(t1, msf);
 
     /* Add error vector s2 */
     t1 = _polyveck_add_inplace(t1, s2);
@@ -570,9 +570,9 @@ fn _crypto_sign_signature_ctx
   reg ptr u32[N] cp;
   mat = s_mat; rho = s_rho;
   mat, msf = _polyvec_matrix_expand(mat, rho, msf); s_mat = mat;
-  s1 = s_s1; s1 = _polyvecl_ntt(s1); s_s1 = s1;
-  s2 = s_s2; s2 = _polyveck_ntt(s2); s_s2 = s2;
-  t0 = s_t0; t0 = _polyveck_ntt(t0); s_t0 = t0;
+  s1 = s_s1; s1, msf = _polyvecl_ntt(s1, msf); s_s1 = s1;
+  s2 = s_s2; s2, msf = _polyveck_ntt(s2, msf); s_s2 = s2;
+  t0 = s_t0; t0, msf = _polyveck_ntt(t0, msf); s_t0 = t0;
 
   reg u32 continue nonce r0;
   stack u32 s_nonce;
@@ -587,11 +587,11 @@ fn _crypto_sign_signature_ctx
 
     /* Matrix-vector multiplication */
     s_z = copy_polyvecl(s_z, s_y);
-    s_z = _polyvecl_ntt(s_z);
+    s_z, msf = _polyvecl_ntt(s_z, msf);
     mat = s_mat;
     w1 = s_w1; w1 = _polyvec_matrix_pointwise_montgomery(w1, mat, s_z);
     w1 = _polyveck_reduce(w1);
-    w1 = _polyveck_invntt_tomont(w1);
+    w1, msf = _polyveck_invntt_tomont(w1, msf);
 
     /* Decompose w and call the random oracle */
     w1 = _polyveck_caddq(w1);
@@ -628,42 +628,42 @@ fn _crypto_sign_signature_ctx
     () = #spill(sig);
     cp = s_cp;
     cp, msf = _poly_challenge(cp, sigctilde, msf);
-    cp = _poly_ntt(cp);
+    cp, msf = _poly_ntt(cp, msf);
     /* Compute z, reject if it reveals secret */
     s1 = s_s1;
     s_z = _polyvecl_pointwise_poly_montgomery(s_z, cp, s1); s_cp = cp;
-    s_z = _polyvecl_invntt_tomont(s_z);
+    s_z, msf = _polyvecl_invntt_tomont(s_z, msf);
     s_z = _polyvecl_add_inplace(s_z, s_y);
     s_z = _polyvecl_reduce(s_z);
 
     reg u32 chknorm bound;
     bound = iGAMMA1 - BETA;
-    chknorm = _polyvecl_chknorm(s_z, bound);
+    chknorm, msf = _polyvecl_chknorm(s_z, bound, msf);
     () = #spill(sig);
     if (chknorm != 0) {
       continue = 1;
     } else {
       s2 = s_s2; h = s_h;
       h = _polyveck_pointwise_poly_montgomery(h, cp, s2);
-      h = _polyveck_invntt_tomont(h); s_h = h;
+      h, msf = _polyveck_invntt_tomont(h, msf); s_h = h;
       w0 = s_w0;
       w0 = _polyveck_sub_inplace(w0, h);
       w0 = _polyveck_reduce(w0);
       s_w0 = w0;
       bound = iGAMMA2 - BETA;
-      chknorm = _polyveck_chknorm(w0, bound);
+      chknorm, msf = _polyveck_chknorm(w0, bound, msf);
       if (chknorm != 0) {
         continue = 1;
       } else {
         cp = s_cp; t0 = s_t0;
         h = h;  // Needed for regalloc
         h = _polyveck_pointwise_poly_montgomery(h, cp, t0);
-        h = _polyveck_invntt_tomont(h);
+        h, msf = _polyveck_invntt_tomont(h, msf);
         h = h; // Needed for regalloc
         h = _polyveck_reduce(h); s_h = h;
 
         bound = iGAMMA2;
-        chknorm = _polyveck_chknorm(h, bound);
+        chknorm, msf = _polyveck_chknorm(h, bound, msf);
         if (chknorm != 0) {
           continue = 1;
         } else {
@@ -671,7 +671,7 @@ fn _crypto_sign_signature_ctx
           w0 = _polyveck_add_inplace(w0, h);
           s_w0 = w0; w1 = s_w1;
           reg u32 n;
-          n, h = _polyveck_make_hint(h, w0, w1); s_h = h;
+          n, h, msf = _polyveck_make_hint(h, w0, w1, msf); s_h = h;
           inline bool test;
           #declassify test = __cmp_lt_u_imm(OMEGA, n); // OMEGA < n; 
           // if (n > OMEGA) 
@@ -823,9 +823,9 @@ fn _crypto_sign_signature_ctx_seed
   reg ptr u32[N] cp;
   mat = s_mat; rho = s_rho;
   mat, msf = _polyvec_matrix_expand(mat, rho, msf); s_mat = mat;
-  s1 = s_s1; s1 = _polyvecl_ntt(s1); s_s1 = s1;
-  s2 = s_s2; s2 = _polyveck_ntt(s2); s_s2 = s2;
-  t0 = s_t0; t0 = _polyveck_ntt(t0); s_t0 = t0;
+  s1 = s_s1; s1, msf = _polyvecl_ntt(s1, msf); s_s1 = s1;
+  s2 = s_s2; s2, msf = _polyveck_ntt(s2, msf); s_s2 = s2;
+  t0 = s_t0; t0, msf = _polyveck_ntt(t0, msf); s_t0 = t0;
 
   reg u32 continue nonce r0;
   stack u32 s_nonce;
@@ -840,11 +840,11 @@ fn _crypto_sign_signature_ctx_seed
 
     /* Matrix-vector multiplication */
     s_z = copy_polyvecl(s_z, s_y);
-    s_z = _polyvecl_ntt(s_z);
+    s_z, msf = _polyvecl_ntt(s_z, msf);
     mat = s_mat;
     w1 = s_w1; w1 = _polyvec_matrix_pointwise_montgomery(w1, mat, s_z);
     w1 = _polyveck_reduce(w1);
-    w1 = _polyveck_invntt_tomont(w1);
+    w1, msf = _polyveck_invntt_tomont(w1, msf);
 
     /* Decompose w and call the random oracle */
     w1 = _polyveck_caddq(w1);
@@ -881,42 +881,42 @@ fn _crypto_sign_signature_ctx_seed
     () = #spill(sig);
     cp = s_cp;
     cp, msf = _poly_challenge(cp, sigctilde, msf);
-    cp = _poly_ntt(cp);
+    cp, msf = _poly_ntt(cp, msf);
     /* Compute z, reject if it reveals secret */
     s1 = s_s1;
     s_z = _polyvecl_pointwise_poly_montgomery(s_z, cp, s1); s_cp = cp;
-    s_z = _polyvecl_invntt_tomont(s_z);
+    s_z, msf = _polyvecl_invntt_tomont(s_z, msf);
     s_z = _polyvecl_add_inplace(s_z, s_y);
     s_z = _polyvecl_reduce(s_z);
 
     reg u32 chknorm bound;
     bound = iGAMMA1 - BETA;
-    chknorm = _polyvecl_chknorm(s_z, bound);
+    chknorm, msf = _polyvecl_chknorm(s_z, bound, msf);
     () = #spill(sig);
     if (chknorm != 0) {
       continue = 1;
     } else {
       s2 = s_s2; h = s_h;
       h = _polyveck_pointwise_poly_montgomery(h, cp, s2);
-      h = _polyveck_invntt_tomont(h); s_h = h;
+      h, msf = _polyveck_invntt_tomont(h, msf); s_h = h;
       w0 = s_w0;
       w0 = _polyveck_sub_inplace(w0, h);
       w0 = _polyveck_reduce(w0);
       s_w0 = w0;
       bound = iGAMMA2 - BETA;
-      chknorm = _polyveck_chknorm(w0, bound);
+      chknorm, msf = _polyveck_chknorm(w0, bound, msf);
       if (chknorm != 0) {
         continue = 1;
       } else {
         cp = s_cp; t0 = s_t0;
         h = h;  // Needed for regalloc
         h = _polyveck_pointwise_poly_montgomery(h, cp, t0);
-        h = _polyveck_invntt_tomont(h);
+        h, msf = _polyveck_invntt_tomont(h, msf);
         h = h; // Needed for regalloc
         h = _polyveck_reduce(h); s_h = h;
 
         bound = iGAMMA2;
-        chknorm = _polyveck_chknorm(h, bound);
+        chknorm, msf = _polyveck_chknorm(h, bound, msf);
         if (chknorm != 0) {
           continue = 1;
         } else {
@@ -924,7 +924,7 @@ fn _crypto_sign_signature_ctx_seed
           w0 = _polyveck_add_inplace(w0, h);
           s_w0 = w0; w1 = s_w1;
           reg u32 n;
-          n, h = _polyveck_make_hint(h, w0, w1); s_h = h;
+          n, h, msf = _polyveck_make_hint(h, w0, w1, msf); s_h = h;
           if (n > OMEGA) {
             continue = 1;
           } else {
@@ -1017,7 +1017,7 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
 
     reg u32 chk;
     () = #spill(pk);
-    c, z, h, chk = _unpack_sig(c, z, h, sig);
+    c, z, h, chk, msf = _unpack_sig(c, z, h, sig, msf);
     () = #unspill(pk);
     () = #unspill(status);
     () = #spill(sig);
@@ -1028,7 +1028,7 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
     if (status == 0) {
       reg u32 bound;
       bound = iGAMMA1 - BETA;
-      chk = _polyvecl_chknorm(z, bound);
+      chk, msf = _polyvecl_chknorm(z, bound, msf);
       if (chk == 1) { status = -1; }
 
       if (status == 0) {
@@ -1075,17 +1075,17 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
         cp, msf = _poly_challenge(cp, c[0:CTILDEBYTES], msf);
         mat, msf = _polyvec_matrix_expand(mat, rho, msf);
 
-        z = _polyvecl_ntt(z);
+        z, msf = _polyvecl_ntt(z, msf);
         w1 = _polyvec_matrix_pointwise_montgomery(w1, mat, z);
 
-        cp = _poly_ntt(cp);
+        cp, msf = _poly_ntt(cp, msf);
         t1 = _polyveck_shiftl(t1);
-        t1 = _polyveck_ntt(t1);
+        t1, msf = _polyveck_ntt(t1, msf);
         t1 = _polyveck_pointwise_poly_montgomery_inplace(t1, cp);
 
         w1 = _polyveck_sub_inplace(w1, t1);
         w1 = _polyveck_reduce(w1);
-        w1 = _polyveck_invntt_tomont(w1);
+        w1, msf = _polyveck_invntt_tomont(w1, msf);
 
         w1 = _polyveck_caddq(w1);
         w1 = _polyveck_use_hint_inplace(w1, h);

@@ -165,7 +165,7 @@ fn _poly_add2_inplace(reg ptr u32[N] a) -> reg ptr u32[N]
 **************************************************/
 
 /* FIXME: Add a warning indicating that the function use declassify and should be use carefully */
-inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B) -> reg u32 {
+inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, reg u32 {
   reg u32 r;
   reg u32 q;
   r = 0;
@@ -175,39 +175,49 @@ inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B) -> reg u32 {
 
   // FIXME: B and q are constant what is the purpose of this test ?
   if (B >s q) {
+    msf = #update_msf(B >s q, msf);   
     r = 1;
-  }
+  } else {
 
-  reg u32 t;
+    msf = #update_msf(!(B >s q), msf);   
 
-  reg u32 i; i = 0;
-
-  while {
-    t = a[(int) i];
-    
-    //t = -t if t <s 0;
-    t = __abs_ct(t);
-    i += 1;
-
-
-
-    inline bool ge;
-    #declassify ge = __cmp_ge_s(t, B); 
-    
-    if (ge) { 
-      r = 1;
-      i = N;
+    reg u32 t;
+  
+    reg u32 i; i = 0;
+  
+    while {
+      t = a[(int) i];
+      
+      //t = -t if t <s 0;
+      t = __abs_ct(t);
+      i += 1;
+  
+  
+  
+      inline bool ge;
+      ge = __cmp_ge_s(t, B, msf); 
+      
+      if (ge) { 
+        msf = #update_msf(ge, msf);   
+        r = 1;
+        i = N;
+      } else {
+        msf = #update_msf(!ge, msf);   
+      }
+  
+    } (i != N) {
+      msf = #update_msf(i != N, msf);   
     } 
+    msf = #update_msf(!(i != N), msf); 
 
-  } (i != N)
-
-  return r;
+  }
+  return r, msf;
 }
 
-fn _poly_chknorm(reg ptr u32[N] a, reg u32 B) -> reg u32 {
+fn _poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, reg u32 {
   reg u32 r;
-  r = __poly_chknorm(a, B);
-  return r;
+  r, msf = __poly_chknorm(a, B, msf);
+  return r, msf;
 }
 
 /**************************************************
@@ -383,16 +393,16 @@ fn _poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h) -> reg ptr u32[N] 
 *
 * Arguments:   - poly *a: pointer to input/output polynomial
 **************************************************/
-inline fn __poly_ntt(reg ptr u32[N] a) -> reg ptr u32[N] {
+inline fn __poly_ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
   // We use _ntt and not __ntt because these functions read global data
   // and they need to be close to that data
-  a = _ntt(a);
-  return a;
+  a, msf = _ntt(a, msf);
+  return a, msf;
 }
 
-fn _poly_ntt(reg ptr u32[N] a) -> reg ptr u32[N] {
-  a = __poly_ntt(a);
-  return a;
+fn _poly_ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+  a, msf = __poly_ntt(a, msf);
+  return a, msf;
 }
 
 /*************************************************
@@ -404,14 +414,14 @@ fn _poly_ntt(reg ptr u32[N] a) -> reg ptr u32[N] {
 *
 * Arguments:   - poly *a: pointer to input/output polynomial
 **************************************************/
-inline fn __poly_invntt_tomont(reg ptr u32[N] a) -> reg ptr u32[N] {
-  a = __invntt_tomont(a);
-  return a;
+inline fn __poly_invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+  a, msf = __invntt_tomont(a, msf);
+  return a, msf;
 }
 
-inline fn _poly_invntt_tomont(reg ptr u32[N] a) -> reg ptr u32[N] {
-  a = _invntt_tomont(a);
-  return a;
+inline fn _poly_invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+  a, msf = _invntt_tomont(a, msf);
+  return a, msf;
 }
 
 /*************************************************
@@ -476,12 +486,13 @@ fn _poly_pointwise_montgomery_inplace(reg ptr u32[N] c, reg ptr u32[N] a) -> reg
 * Returns number of 1 bits.
 **************************************************/
 /* FIXME: is it constant time? Check __make_hint */
-inline fn __poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1) -> reg u32, reg ptr u32[N]{
+inline fn __poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1, reg u32 msf) -> reg u32, reg ptr u32[N], reg u32 {
   reg u32 i, s, a0_, a1_, h_, gamma2;
   gamma2 = iGAMMA2;
   i = 0; s = 0;
   while(i < N)
   {
+    msf = #update_msf((i<N), msf);
     a0_ = a0[(int) i];
     a1_ = a1[(int) i];
     #declassify h_ = __make_hint(a0_, a1_, gamma2);
@@ -489,14 +500,15 @@ inline fn __poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a
     s += h_;
     i += 1;
   }
+  msf = #update_msf(!(i<N), msf);
   #declassify h = h; // h is init with h_ that is declassify
-  return s, h;
+  return s, h, msf;
 }
 
-fn _poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1) -> reg u32, reg ptr u32[N] {
+fn _poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1, reg u32 msf) -> reg u32, reg ptr u32[N], reg u32 {
   reg u32 s;
-  s, h = __poly_make_hint(h, a0, a1);
-  return s, h;
+  s, h, msf = __poly_make_hint(h, a0, a1, msf);
+  return s, h, msf;
 }
 
 /*************************************************
