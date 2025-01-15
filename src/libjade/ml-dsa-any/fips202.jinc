@@ -1,21 +1,25 @@
-inline fn __keccak_init_ref(reg ptr u32[25*2] state) -> reg ptr u32[25*2]
+inline fn __keccak_init_ref(reg ptr u32[25*2] state, reg u32 msf) -> reg ptr u32[25*2], reg u32
 {
   reg u32 i t;
 
   i = 0;
   t = 0;
   while(i < 25*2)
-  { state[(int)i] = t;
+  {
+    msf = #update_msf(i < 25*2, msf);
+    state[(int)i] = t;
     i += 1;
   }
+  msf = #update_msf(!(i < 25*2), msf);
 
-  return state;
+  return state, msf;
 }
 
 
 inline fn __add_seed_ref(reg ptr u32[25*2] state,
-                         reg ptr u8[SEEDBYTES] in) 
-                      -> reg ptr u32[25*2] 
+                         reg ptr u8[SEEDBYTES] in,
+                         reg u32 msf) 
+                      -> reg ptr u32[25*2], reg u32
 {
   reg u32 i t0 inlen4;
 
@@ -24,16 +28,19 @@ inline fn __add_seed_ref(reg ptr u32[25*2] state,
   i = 0;
   while ( i < inlen4 )
   {
+    msf = #update_msf(i < inlen4, msf);
     t0 = in[u32 (int)i];
     state[(int)i] = t0;
     i += 1;
   }
-  return state;
+  msf = #update_msf(!(i < inlen4), msf);
+  return state, msf;
 }
 
 inline fn __add_crh_ref(reg ptr u32[25*2] state,
-                        reg ptr u8[CRHBYTES] in) 
-                     -> reg ptr u32[25*2] 
+                        reg ptr u8[CRHBYTES] in,
+                        reg u32 msf) 
+                     -> reg ptr u32[25*2], reg u32
 {
   reg u32 i t0 inlen4;
 
@@ -42,16 +49,19 @@ inline fn __add_crh_ref(reg ptr u32[25*2] state,
   i = 0;
   while ( i < inlen4 )
   {
+    msf = #update_msf(i < inlen4, msf);
     t0 = in[u32 (int)i];
     state[(int)i] = t0;
     i += 1;
   }
-  return state;
+  msf = #update_msf(!(i < inlen4), msf);
+  return state, msf;
 }
 
 inline fn __add_ctilde_ref(reg ptr u32[25*2] state,
-                         reg ptr u8[CTILDEBYTES] in)
-                      -> reg ptr u32[25*2]
+                         reg ptr u8[CTILDEBYTES] in,
+                         reg u32 msf)
+                      -> reg ptr u32[25*2], reg u32
 {
   reg u32 i t0 inlen4;
 
@@ -60,16 +70,19 @@ inline fn __add_ctilde_ref(reg ptr u32[25*2] state,
   i = 0;
   while ( i < inlen4 )
   {
+    msf = #update_msf(i < inlen4, msf);
     t0 = in[u32 (int)i];
     state[(int)i] = t0;
     i += 1;
   }
-  return state;
+  msf = #update_msf(!(i < inlen4), msf);
+  return state, msf;
 }
 
 inline fn __add_seedrndcrh_ref(reg ptr u32[25*2] state,
-                        reg ptr u8[SEEDBYTES + RNDBYTES + CRHBYTES] in) 
-                     -> reg ptr u32[25*2] 
+                        reg ptr u8[SEEDBYTES + RNDBYTES + CRHBYTES] in,
+                        reg u32 msf) 
+                     -> reg ptr u32[25*2], reg u32
 {
   reg u32 i t0 inlen4;
 
@@ -78,11 +91,13 @@ inline fn __add_seedrndcrh_ref(reg ptr u32[25*2] state,
   i = 0;
   while ( i < inlen4 )
   {
+    msf = #update_msf(i < inlen4, msf);
     t0 = in[u32 (int)i];
     state[(int)i] = t0;
     i += 1;
   }
-  return state;
+  msf = #update_msf(!(i < inlen4), msf);
+  return state, msf;
 }
 
 
@@ -106,7 +121,7 @@ inline fn __add_mu_ref(reg ptr u32[25*2] state,
   return state;
 }
 
-inline fn __add_zero_after_add_naive(reg ptr u32[25*2] state, inline int pos) -> reg ptr u32[25*2]
+inline fn __add_zero_after_add_naive(reg ptr u32[25*2] state, inline int pos, reg u32 msf) -> reg ptr u32[25*2], reg u32
 {
   reg u32 i, zero;
   zero = 0;
@@ -114,10 +129,12 @@ inline fn __add_zero_after_add_naive(reg ptr u32[25*2] state, inline int pos) ->
   i = pos;
 
   while (i < 25 * 2 * 4) {
+    msf = #update_msf(i < 25 * 2 * 4, msf);
     state[u8 (int) i] = (8u)zero;
     i += 1;
   }
-  return state;
+  msf = #update_msf(!(i < 25 * 2 * 4), msf);
+  return state, msf;
 }
 
 inline fn __add_nonce_ref(
@@ -155,16 +172,16 @@ inline fn __add_block_end(
   return state;
 }
 
-inline fn __add_zero_after_add(reg ptr u32[25*2] state, inline int nbbytes) -> reg ptr u32[25*2]
+inline fn __add_zero_after_add(reg ptr u32[25*2] state, inline int nbbytes, reg u32 msf) -> reg ptr u32[25*2], reg u32 
 {
   reg u32 i, zero;
   zero = 0;
 
-  if (nbbytes % 2 == 1) { 
+  #inline if (nbbytes % 2 == 1) { 
     state[u8 (int) nbbytes] = zero;
   }
   nbbytes = nbbytes + ((nbbytes % 2 == 1) ? 1 : 0);
-  if (nbbytes % 4 == 2) { 
+  #inline if (nbbytes % 4 == 2) { 
     state[u16 (int) (nbbytes / 2)] = zero;
   }
   nbbytes = nbbytes + ((nbbytes % 4 == 2) ? 2 : 0);
@@ -172,52 +189,57 @@ inline fn __add_zero_after_add(reg ptr u32[25*2] state, inline int nbbytes) -> r
   i = (nbbytes / 4);
 
   while (i < 25*2) {
+    msf = #update_msf(i < 25*2, msf);
     state[(int) i] = zero;
     i += 1;
   } 
-  return state;     
+  msf = #update_msf(!(i < 25*2), msf);
+  return state, msf;     
 }
 
 inline fn __SHAKE256_init_seed_ref(
   reg ptr u32[25*2] state,
-  reg ptr u8[SEEDBYTES] seed
-) -> reg ptr u32[25*2]
+  reg ptr u8[SEEDBYTES] seed,
+  reg u32 msf
+) -> reg ptr u32[25*2], reg u32
 {
-  state = __add_seed_ref(state, seed);
-  state = __add_zero_after_add(state, SEEDBYTES);
+  state, msf = __add_seed_ref(state, seed, msf);
+  state, msf = __add_zero_after_add(state, SEEDBYTES, msf);
   reg u32 k = K;
   state[u8 SEEDBYTES] = k;
   reg u32 l = L;
   state[u8 SEEDBYTES+1] = l;
   state = __add_block_end(state, SEEDBYTES + 2, SHAKE256_RATE);
-  state = _keccakf1600_ref(state);
-  return state;
+  state, msf = _keccakf1600_ref(state, msf);
+  return state, msf;
 }
 
 inline fn __SHAKE256_init_ctilde_ref(
   reg ptr u32[25*2] state,
-  reg ptr u8[CTILDEBYTES] seed
-) -> reg ptr u32[25*2]
+  reg ptr u8[CTILDEBYTES] seed,
+  reg u32 msf
+) -> reg ptr u32[25*2], reg u32
 {
-  state = __add_ctilde_ref(state, seed);
-  state = __add_zero_after_add(state, CTILDEBYTES);
+  state, msf = __add_ctilde_ref(state, seed, msf);
+  state, msf = __add_zero_after_add(state, CTILDEBYTES, msf);
   state = __add_block_end(state, CTILDEBYTES, SHAKE256_RATE);
-  state = _keccakf1600_ref(state);
-  return state;
+  state,msf = _keccakf1600_ref(state, msf);
+  return state, msf;
 }
 
 fn _stream128_init(
   reg ptr u32[25*2] state,
   reg ptr u8[SEEDBYTES] seed,
-  reg u32 nonce
-) -> reg ptr u32[25*2]
+  reg u32 nonce,
+  reg u32 msf
+) -> reg ptr u32[25*2], reg u32
 {
-  state = __add_seed_ref(state, seed);
+  state, msf = __add_seed_ref(state, seed, msf);
   state = __add_nonce_ref(state, SEEDBYTES >> 1, nonce);
-  state = __add_zero_after_add(state, SEEDBYTES + 2);
+  state, msf = __add_zero_after_add(state, SEEDBYTES + 2, msf);
   state = __add_block_end(state, SEEDBYTES + 2, SHAKE128_RATE);
-  state = _keccakf1600_ref(state);
-  return state;
+  state, msf = _keccakf1600_ref(state, msf);
+  return state, msf;
 }
 
 fn _stream128_refill_buffer(
@@ -225,69 +247,75 @@ fn _stream128_refill_buffer(
   reg ptr u32[N] a,
   reg u32 pos,
   reg u32 ctr,
-  reg u32 q
-) -> reg ptr u32[25*2], reg ptr u32[N], reg u32, reg u32, reg u32, reg u32[3] 
+  reg u32 q,
+  reg u32 msf
+) -> reg ptr u32[25*2], reg ptr u32[N], reg u32, reg u32, reg u32, reg u32[3], reg u32
 {
   if (pos == SHAKE128_RATE >> 2) {
     stack u32 sctr;
     stack ptr u32[N] sa;
     sctr = ctr; sa = a;
-    state = _keccakf1600_ref(state); 
+    state, msf = _keccakf1600_ref(state, msf); 
     a = sa; pos = 0; ctr = sctr; q = __Q();
   }
   reg u32[3] buf;
   inline int i;
   for i = 0 to 3 { buf[i] = state[(int) pos]; pos += 1; }  
-  return state, a, pos, ctr, q, buf;
+  return state, a, pos, ctr, q, buf, msf;
 }
 
 fn _stream256_init(
   reg ptr u32[25*2] state,
   reg ptr u8[CRHBYTES] seed,
-  reg u32 nonce
-) -> reg ptr u32[25*2]
+  reg u32 nonce,
+  reg u32 msf
+) -> reg ptr u32[25*2], reg u32
 {
-  state = __add_crh_ref(state, seed);
+  state, msf = __add_crh_ref(state, seed, msf);
   state = __add_nonce_ref(state, CRHBYTES >> 1, nonce);
-  state = __add_zero_after_add(state, CRHBYTES + 2);
+  state, msf = __add_zero_after_add(state, CRHBYTES + 2, msf);
   state = __add_block_end(state, CRHBYTES + 2, SHAKE256_RATE);
-  state = _keccakf1600_ref(state);
-  return state;
+  state, msf = _keccakf1600_ref(state, msf);
+  return state, msf;
 }
 
 fn _stream256_refill_buffer(
   reg ptr u32[25*2] state,
   reg ptr u32[N] a,
   reg u32 pos,
-  reg u32 ctr ,
-  reg u32 n205
-) -> reg ptr u32[25*2], reg ptr u32[N], reg u32, reg u32, reg u32, reg u32
+  reg u32 ctr,
+  reg u32 n205,
+  reg u32 msf
+) -> reg ptr u32[25*2], reg ptr u32[N], reg u32, reg u32, reg u32, reg u32, reg u32
 {
   if (pos == SHAKE256_RATE >> 2) {
     stack u32 sctr;
     stack ptr u32[N] sa;
     sctr = ctr; sa = a;
-    state = _keccakf1600_ref(state); 
+    state, msf = _keccakf1600_ref(state, msf); 
     a = sa; pos = 0; ctr = sctr; n205 = 205;
   }
   reg u32 buf;
   buf = state[(int) pos]; pos += 1; 
-  return state, a, pos, ctr, n205, buf;
+  return state, a, pos, ctr, n205, buf, msf;
 }
 
 fn _stream256_full_squeeze (
   reg ptr u8[SHAKE256_RATE] buf, 
-  reg ptr u32[25*2] state
-) -> reg ptr u8[SHAKE256_RATE] {
+  reg ptr u32[25*2] state,
+  reg u32 msf
+) -> reg ptr u8[SHAKE256_RATE], reg u32 {
   reg u32 i, t;
   i = 0;
 
   while (i < SHAKE256_RATE / 4) {
+    msf = #update_msf(i < SHAKE256_RATE / 4, msf);
     t = state[(int) i];
     buf[u32 (int) i] = t;
     i += 1;
   }
-  return buf;
+  msf = #update_msf(!(i < SHAKE256_RATE / 4), msf);
+  return buf, msf;
 }
          
    

@@ -165,7 +165,7 @@ fn _poly_add2_inplace(reg ptr u32[N] a) -> reg ptr u32[N]
 **************************************************/
 
 /* FIXME: Add a warning indicating that the function use declassify and should be use carefully */
-inline fn __poly_chknorm(#secret reg ptr u32[N] a, reg u32 B) -> reg u32 {
+inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B) -> reg u32 {
   reg u32 r;
   reg u32 q;
   r = 0;
@@ -221,7 +221,7 @@ fn _poly_chknorm(reg ptr u32[N] a, reg u32 B) -> reg u32 {
 *              - const uint8_t mu[]: byte array containing seed of length SEEDBYTES
 **************************************************/
 
-fn _poly_challenge(reg ptr u32[N] c, #secret reg ptr u8[CTILDEBYTES] seed) -> reg ptr u32[N]
+fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed, reg u32 msf) -> reg ptr u32[N], reg u32
 {
   stack u32[PQC_SHAKECTX_BYTES*2] _state;
   reg ptr u32[PQC_SHAKECTX_BYTES*2] state;
@@ -233,9 +233,9 @@ fn _poly_challenge(reg ptr u32[N] c, #secret reg ptr u8[CTILDEBYTES] seed) -> re
 
   // equivalent to shake256_inc_init_jazz(state);
   // equivalent to shake256_inc_absorb_jazz(state, seed, SEEDBYTES) and shake256_inc_finalize_jazz(state)
-  state = __SHAKE256_init_ctilde_ref(state, seed);
+  state, msf = __SHAKE256_init_ctilde_ref(state, seed, msf);
   c = cs;
-
+  c = #protect_ptr(c, msf);
   reg u32[2] signs;
   stack u32[2] s_signs;
   stack u32 js;
@@ -250,33 +250,43 @@ fn _poly_challenge(reg ptr u32[N] c, #secret reg ptr u8[CTILDEBYTES] seed) -> re
   // FIXME improve this loop
   i = 0;
   while (i < N) {
+    msf = #update_msf(i < N, msf);
     c[(int) i] = aux;
     i += 1;
   }
+  msf = #update_msf(!(i < N), msf);
 
   reg u32 j;
   j = N - TAU;
   reg u32 b;
   inline bool test;
   while (j < N) {
+    msf = #update_msf(j < N, msf);
     while {
       if (pos >= SHAKE256_RATE) {
+          msf = #update_msf(pos >= SHAKE256_RATE, msf);
           // save j pbuf c, signs
           js = j; cs = c; s_signs = #copy(signs);
-          state = _keccakf1600_ref(state);
+          state, msf = _keccakf1600_ref(state, msf);
           j = js; c = cs;  signs = #copy(s_signs);
           pos = 0;
+      } else { 
+        msf = #update_msf(!(pos >= SHAKE256_RATE), msf);
       }
-
+      j = #protect(j, msf);
       b = (32u) state[u8 (int) pos];
+      #declassify b = b; // This come from a rejection sampling arguments
       /* We can certainly declassify the value of b */
       pos += 1;
-      
+      b = #protect(b, msf);
       #declassify test = __cmp_gt_u(j, b); /* b > j */      
 
-    } (test)
+    } (test) { msf = #update_msf(test, msf); }
+    msf = #update_msf(!test, msf); 
 
     #declassify b = b; // This come from a rejection sampling arguments
+    b = #protect(b, msf);
+    c = #protect_ptr(c, msf);
     aux = c[(int) b];
     c[(int) j] = aux;
 
@@ -289,8 +299,9 @@ fn _poly_challenge(reg ptr u32[N] c, #secret reg ptr u8[CTILDEBYTES] seed) -> re
 
     j += 1;
   }
+  msf = #update_msf(!(j < N), msf);
 
-  return c;
+  return c, msf;
 }
 
 /*************************************************

@@ -7,8 +7,9 @@ param int matKL = polyvecl * K;
 fn _polyvecl_uniform_eta(
   reg ptr u32[polyvecl] v, 
   reg ptr u8[CRHBYTES] seed, 
-  reg u32 nonce
-) -> reg ptr u32[polyvecl]
+  reg u32 nonce,
+  reg u32 msf
+) -> reg ptr u32[polyvecl], reg u32
 {
   inline int i;
   stack ptr u8[CRHBYTES] s_seed;
@@ -19,19 +20,20 @@ fn _polyvecl_uniform_eta(
   for i = 0 to L {
     p = v[i * N : N]; 
     s_v = v; s_nonce = nonce; s_seed = seed;
-    p = _poly_uniform_eta(p, seed, nonce);
+    p, msf = _poly_uniform_eta(p, seed, nonce, msf);
     s_v[i * N : N] = p; v = s_v;  nonce = s_nonce; seed = s_seed; 
     nonce += 1;
 
   }
-  return v;
+  return v, msf;
 }
 
 fn _polyvecl_uniform_gamma1(
   reg ptr u32[polyvecl] v, 
   reg ptr u8[CRHBYTES] seed, 
-  reg u32 nonce
-) -> reg ptr u32[polyvecl]
+  reg u32 nonce,
+  reg u32 msf
+) -> reg ptr u32[polyvecl], reg u32
 {
   inline int i;
   stack ptr u8[CRHBYTES] s_seed;
@@ -46,12 +48,12 @@ fn _polyvecl_uniform_gamma1(
   for i = 0 to L {
     p = v[i * N : N]; 
     s_v = v; s_nonce = nonce; s_seed = seed;
-    p = _poly_uniform_gamma1(p, seed, nonce);
+    p, msf = _poly_uniform_gamma1(p, seed, nonce, msf);
     s_v[i * N : N] = p; v = s_v;  nonce = s_nonce; seed = s_seed;
     nonce += 1;
     nonce = __ubfx(nonce, 0, 16);
   }
-  return v;
+  return v, msf;
 }
 
 /* Start here */
@@ -179,8 +181,9 @@ fn _polyvecl_chknorm(#secret reg ptr u32[polyvecl] v, reg u32 bound) -> reg u32
 fn _polyveck_uniform_eta(
   reg ptr u32[polyveck] v, 
   reg ptr u8[CRHBYTES] seed, 
-  reg u32 nonce
-) -> reg ptr u32[polyveck]
+  reg u32 nonce, 
+  reg u32 msf
+) -> reg ptr u32[polyveck], reg u32
 {
   inline int i;
   stack ptr u8[CRHBYTES] s_seed;
@@ -191,12 +194,12 @@ fn _polyveck_uniform_eta(
   for i = 0 to K {
     p = v[i * N : N]; 
     s_v = v; s_nonce = nonce; s_seed = seed;
-    p = _poly_uniform_eta(p, seed, nonce);
+    p, msf = _poly_uniform_eta(p, seed, nonce, msf);
     s_v[i * N : N] = p; v = s_v;  nonce = s_nonce; seed = s_seed; 
     nonce += 1;
 
   }
-  return v;
+  return v, msf;
 }
 
 fn _polyveck_reduce(reg ptr u32[polyveck] v) -> reg ptr u32[polyveck] 
@@ -417,8 +420,9 @@ fn _polyveck_pack_w1(
 
 fn _polyvec_matrix_expand(
   reg ptr u32[matKL] mat,
-  reg ptr u8[SEEDBYTES] rho
-) -> reg ptr u32[matKL] {
+  reg ptr u8[SEEDBYTES] rho,
+  reg u32 msf
+) -> reg ptr u32[matKL], reg u32 {
   inline int i j;
   reg ptr u32[N] pmat;
   reg u32 nonce;
@@ -429,13 +433,13 @@ fn _polyvec_matrix_expand(
       pmat = mat[i*polyvecl+j*N:N];
       nonce = (i << 8) + j;
       () = #spill(mat);
-      pmat = _poly_uniform(pmat, rho, nonce);
+      pmat, msf = _poly_uniform(pmat, rho, nonce, msf);
       () = #unspill(mat, rho);
       mat[i*polyvecl+j*N:N] = pmat;
     }
   }
 
-  return mat;
+  return mat, msf;
 }
 
 fn _polyvec_matrix_pointwise_montgomery(

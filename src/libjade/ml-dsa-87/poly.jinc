@@ -615,14 +615,15 @@ inline fn __extr_rej_sample(
 
 fn _poly_uniform(reg ptr u32[N] a,
                  reg ptr u8[SEEDBYTES] seed,
-                 reg u32 nonce
-) -> reg ptr u32[N]
+                 reg u32 nonce,
+                 reg u32 msf
+) -> reg ptr u32[N], reg u32
 {
   stack u32[25*2] state_;
   reg ptr u32[25*2] state;
   stack ptr u32[N] sa;
   sa = a; state = state_;
-  state = _stream128_init(state, seed, nonce);
+  state, msf = _stream128_init(state, seed, nonce, msf);
   a = sa;
   
   reg u32 ctr, ctr4, pos, q, t;
@@ -631,7 +632,7 @@ fn _poly_uniform(reg ptr u32[N] a,
   ctr = 0; pos = 0; q = __Q();
 
   while { ctr4 = ctr + 4; } (ctr4 < N) {
-    state, a, pos, ctr, q, buf = _stream128_refill_buffer(state, a, pos, ctr, q);
+    state, a, pos, ctr, q, buf, msf = _stream128_refill_buffer(state, a, pos, ctr, q, msf);
 
     a, ctr = __extr_rej_sample(a, ctr, buf[0], q);  // 3 bytes in buf[0]
 
@@ -648,7 +649,7 @@ fn _poly_uniform(reg ptr u32[N] a,
   }
 
   while (ctr < N) {
-    state, a, pos, ctr, q, buf = _stream128_refill_buffer(state, a, pos, ctr, q);
+    state, a, pos, ctr, q, buf, msf = _stream128_refill_buffer(state, a, pos, ctr, q, msf);
 
     a, ctr = __extr_rej_sample(a, ctr, buf[0], q);  // 3 bytes in buf[0]
 
@@ -669,7 +670,7 @@ fn _poly_uniform(reg ptr u32[N] a,
       a, ctr = __rej_sample(a, ctr, t, q);
     }
   }
-  return a;
+  return a, msf;
 } 
 
 /*************************************************
@@ -706,14 +707,15 @@ inline fn rej_eta(
 
 fn _poly_uniform_eta(reg ptr u32[N] a,
                  reg ptr u8[CRHBYTES] seed,
-                 reg u32 nonce
-) -> reg ptr u32[N]
+                 reg u32 nonce,
+                 reg u32 msf
+) -> reg ptr u32[N], reg u32
 {
   stack u32[25*2] state_;
   reg ptr u32[25*2] state;
   stack ptr u32[N] sa;
   sa = a; state = state_;
-  state = _stream256_init(state, seed, nonce);
+  state, msf = _stream256_init(state, seed, nonce, msf);
   a = sa;
   
   reg u32 ctr, ctr8, pos, n205, t;
@@ -723,7 +725,7 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
 
   while { ctr8 = ctr + 8; } (ctr8 < N) {
 
-    state, a, pos, ctr, n205, buf = _stream256_refill_buffer(state, a, pos, ctr, n205);
+    state, a, pos, ctr, n205, buf, msf = _stream256_refill_buffer(state, a, pos, ctr, n205, msf);
     inline int i;
     for i = 0 to 8 {
       t = __ubfx(buf, 4*i, 4);
@@ -732,7 +734,7 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
   }
 
   while (ctr < N) {
-    state, a, pos, ctr, n205, buf = _stream256_refill_buffer(state, a, pos, ctr, n205);
+    state, a, pos, ctr, n205, buf, msf = _stream256_refill_buffer(state, a, pos, ctr, n205, msf);
     inline int i;
     for i = 0 to 8 {
       if ((i == 0) || (ctr < N)) {
@@ -741,7 +743,7 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
       }
     }       
   }
-  return a;
+  return a, msf;
 } 
 
 param int POLYZ_LAST = POLYZ_PACKEDBYTES / SHAKE256_RATE * SHAKE256_RATE;
@@ -750,8 +752,9 @@ param int POLYZ_LAST_SZ = POLYZ_PACKEDBYTES % SHAKE256_RATE;
 
 fn _poly_uniform_gamma1(reg ptr u32[N] a,
                  reg ptr u8[CRHBYTES] seed,
-                 reg u32 nonce
-) -> reg ptr u32[N]
+                 reg u32 nonce,
+                 reg u32 msf
+) -> reg ptr u32[N], reg u32
 {
   stack u8[POLYZ_PACKEDBYTES] buf_;
   reg ptr u8[POLYZ_PACKEDBYTES] buf;
@@ -760,14 +763,14 @@ fn _poly_uniform_gamma1(reg ptr u32[N] a,
   reg ptr u32[25*2] state;
   stack ptr u32[N] sa;
   sa = a; state = state_;
-  state = _stream256_init(state, seed, nonce);
+  state, msf = _stream256_init(state, seed, nonce, msf);
   
   inline int k;
   for k = 0 to POLYZ_PACKEDBYTES / SHAKE256_RATE {
     bufb = buf_[SHAKE256_RATE * k : SHAKE256_RATE];
-    bufb = _stream256_full_squeeze(bufb, state);
+    bufb, msf = _stream256_full_squeeze(bufb, state, msf);
     buf_[SHAKE256_RATE * k : SHAKE256_RATE] = bufb;
-    state = _keccakf1600_ref(state);
+    state, msf = _keccakf1600_ref(state, msf);
   }
 
   reg ptr u8[POLYZ_LAST_SZ] bufc;
@@ -776,13 +779,16 @@ fn _poly_uniform_gamma1(reg ptr u32[N] a,
   reg u32 i, t;
   i = 0;
   while (i < POLYZ_LAST_SZ / 4) {
+    msf = #update_msf(i < POLYZ_LAST_SZ / 4, msf);
     t = state[(int) i];
     bufc[u32 (int) i] = t;
     i += 1;
   }
+  msf = #update_msf(!(i < POLYZ_LAST_SZ / 4), msf);
   buf_[  POLYZ_LAST : POLYZ_LAST_SZ] = bufc;
 
   buf = buf_; a = sa;
+  a = #protect_ptr(a, msf);
   a = _polyz_unpack(a, buf);
-  return a;
+  return a, msf;
 }
