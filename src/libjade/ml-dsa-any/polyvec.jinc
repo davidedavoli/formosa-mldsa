@@ -22,6 +22,7 @@ fn _polyvecl_uniform_eta(
     s_v = v; s_nonce = nonce; s_seed = seed;
     p, msf = _poly_uniform_eta(p, seed, nonce, msf);
     s_v[i * N : N] = p; v = s_v;  nonce = s_nonce; seed = s_seed; 
+    seed = #protect_ptr(seed, msf);
     nonce += 1;
 
   }
@@ -197,8 +198,8 @@ fn _polyveck_uniform_eta(
     s_v = v; s_nonce = nonce; s_seed = seed;
     p, msf = _poly_uniform_eta(p, seed, nonce, msf);
     s_v[i * N : N] = p; v = s_v;  nonce = s_nonce; seed = s_seed; 
+    seed = #protect_ptr(seed, msf);
     nonce += 1;
-
   }
   return v, msf;
 }

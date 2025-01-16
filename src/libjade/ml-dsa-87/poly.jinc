@@ -706,10 +706,12 @@ inline fn rej_eta(
   reg ptr u32[N] a, 
   reg u32 ctr, 
   reg u32 t,
-  reg u32 n205
-) -> reg ptr u32[N], reg u32 
+  reg u32 n205,
+  reg u32 msf
+) -> reg ptr u32[N], reg u32, reg u32
 {
   if (t < 15) {
+    msf = #update_msf((t<15), msf);
     reg u32 aux;
     aux = t * n205;
     aux = aux >> 10;
@@ -719,7 +721,10 @@ inline fn rej_eta(
     a[(int) ctr] = aux;
     ctr += 1;
   }
-  return a, ctr;
+  else {
+    msf = #update_msf(!(t<15), msf);
+  }
+  return a, ctr, msf;
 }
 
 fn _poly_uniform_eta(reg ptr u32[N] a,
@@ -741,25 +746,44 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
   ctr = 0; pos = 0; n205 = 205;
 
   while { ctr8 = ctr + 8; } (ctr8 < N) {
-
+    msf = #update_msf((ctr8 < N), msf);
     state, a, pos, ctr, n205, buf, msf = _stream256_refill_buffer(state, a, pos, ctr, n205, msf);
-    inline int i;
+    a = #protect_ptr(a, msf);
+    ctr = #protect(ctr, msf);
+    // DD declassify buf because it is the output of hash
+    #declassify buf = buf;
+
+  inline int i;
     for i = 0 to 8 {
       t = __ubfx(buf, 4*i, 4);
-      a, ctr = rej_eta(a, ctr, t, n205);
+      t = #protect(t, msf);
+      a, ctr, msf = rej_eta(a, ctr, t, n205, msf);
     }     
   }
+  msf = #update_msf(!(ctr8 < N), msf);
 
   while (ctr < N) {
+    msf = #update_msf((ctr < N), msf);
     state, a, pos, ctr, n205, buf, msf = _stream256_refill_buffer(state, a, pos, ctr, n205, msf);
     inline int i;
+    a = #protect_ptr(a, msf);
+    ctr = #protect(ctr, msf);
+    // DD declassify buf because it is the output of hash
+    #declassify buf = buf;
+    
     for i = 0 to 8 {
       if ((i == 0) || (ctr < N)) {
+        msf = #update_msf(((i == 0) || (ctr < N)), msf);
         t = __ubfx(buf, 4*i, 4);
-        a, ctr = rej_eta(a, ctr, t, n205);
+        t = #protect(t, msf);
+        a, ctr, msf = rej_eta(a, ctr, t, n205, msf);
+      } else {
+        msf = #update_msf(!((i == 0) || (ctr < N)), msf);
       }
     }       
   }
+  msf = #update_msf(!(ctr < N), msf);
+
   return a, msf;
 } 
 

@@ -252,7 +252,7 @@ fn _stream128_refill_buffer(
   reg u32 ctr,
   reg u32 q,
   reg u32 msf
-) -> reg ptr u32[25*2], reg ptr u32[N], reg u32, reg u32, reg u32, reg u32[3], reg u32
+) -> reg ptr u32[25*2], reg ptr u32[N], reg u32, reg u32, reg u32, reg u32[3], #msf reg u32
 {
   if (pos == SHAKE128_RATE >> 2) {
     msf = #update_msf((pos == SHAKE128_RATE >> 2), msf);
@@ -295,11 +295,14 @@ fn _stream256_refill_buffer(
 ) -> reg ptr u32[25*2], reg ptr u32[N], reg u32, reg u32, reg u32, reg u32, reg u32
 {
   if (pos == SHAKE256_RATE >> 2) {
+    msf = #update_msf((pos == SHAKE256_RATE >> 2), msf);
     stack u32 sctr;
     stack ptr u32[N] sa;
     sctr = ctr; sa = a;
     state, msf = _keccakf1600_ref(state, msf); 
     a = sa; pos = 0; ctr = sctr; n205 = 205;
+  } else {
+  msf = #update_msf(!(pos == SHAKE256_RATE >> 2), msf);
   }
   reg u32 buf;
   buf = state[(int) pos]; pos += 1; 
