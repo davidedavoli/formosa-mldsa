@@ -70,14 +70,14 @@ fn _polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a) ->
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
 
-inline fn __polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a) -> reg ptr u32[N] {
+inline fn __polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
   reg u32 i, j;
   reg u32[3] t;
   inline int k;
   reg u32 aux;
   i = 0; j = 0;
   while(i < N) {
-
+    msf = #update_msf((i < N), msf);
     for k = 0 to 3 { t[k] = (32u) a[(int) j]; j +=1; }
 
     /* r->coeffs[8 * i + 0] =  (a[3 * i + 0] >> 0) & 7;
@@ -132,13 +132,13 @@ inline fn __polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a) 
     aux = __imm_sub_reg_inplace(ETA, aux);
     r[(int) i] = aux; i += 1;
   }
-
-  return r;  
+  msf = #update_msf(!(i < N), msf);
+  return r, msf;  
 }
 
-fn _polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a) -> reg ptr u32[N] {
-  r = __polyeta_unpack(r, a);
-  return r;
+fn _polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+  r, msf = __polyeta_unpack(r, a, msf);
+  return r, msf;
 }
 
 /*************************************************
@@ -504,7 +504,7 @@ fn _polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a) -> reg ptr u
 *                            POLYZ_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-inline fn __polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a) -> reg ptr u8[POLYZ_PACKEDBYTES] {
+inline fn __polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYZ_PACKEDBYTES], reg u32 {
   reg u32 i, j, aux, gamma1;
   reg u32[2] t;
   inline int k;
@@ -513,6 +513,7 @@ inline fn __polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a) -> reg
 
   i = 0; j = 0;
   while (i < N) {
+    msf = #update_msf((i < N), msf);
     for k = 0 to 2 {
        t[k] = a[(int) i]; t[k] = gamma1 - t[k];
        i += 1;
@@ -541,12 +542,13 @@ inline fn __polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a) -> reg
     r[(int) j] = aux; j += 1;
 
   }
-  return r;
+  msf = #update_msf(!(i < N), msf);
+  return r, msf;
 }
 
-fn _polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a) -> reg ptr u8[POLYZ_PACKEDBYTES] {
-  r = __polyz_pack(r, a);
-  return r;
+fn _polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYZ_PACKEDBYTES], #msf reg u32 {
+  r, msf = __polyz_pack(r, a, msf);
+  return r, msf;
 }
 
 /*************************************************

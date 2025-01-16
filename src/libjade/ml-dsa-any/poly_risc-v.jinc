@@ -12,8 +12,8 @@
 inline fn __rej_sample(
   reg ptr u32[N] a,
   reg u32 ctr,
-  reg u32 t,
-  reg u32 q, 
+  #secret reg u32 t,
+  #secret reg u32 q, 
   reg u32 msf
 ) -> reg ptr u32[N], reg u32, reg u32
 {
