@@ -286,7 +286,7 @@ fn _unpack_sk
    reg ptr u8[JASMIN_MLDSA_CRYPTO_SECRETKEYBYTES] sk,
    reg u32 msf)
   -> reg ptr u8[SEEDBYTES], reg ptr u8[TRBYTES], reg ptr u8[SEEDBYTES],
-     reg ptr u32[polyveck], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32
+     reg ptr u32[polyveck], reg ptr u32[polyvecl], reg ptr u32[polyveck], #msf reg u32
      // rho, tr, key, t0, s1, s2
 {
     sk = sk; rho = rho; tr = tr; key = key; t0 = t0; s1 = s1; s2 = s2;
@@ -346,7 +346,7 @@ fn _unpack_sk
     for i = 0 to K {
         nt0 = t0[i * N: N];
         nnsk = sk[start_pos : POLYT0_PACKEDBYTES];
-        t0[i * N: N] = _polyt0_unpack(nt0, nnsk);
+        t0[i * N: N], msf = _polyt0_unpack(nt0, nnsk, msf);
 	start_pos += POLYT0_PACKEDBYTES;
     }
     () = #unspill(rho);

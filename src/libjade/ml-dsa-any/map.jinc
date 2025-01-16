@@ -1,7 +1,7 @@
 // /////////////////////////////////////////////////////////////////////////////
 // maps
 
-inline fn __map1__reduce32_8380417(reg ptr u32[256] a) -> reg ptr u32[256]
+inline fn __map1__reduce32_8380417(reg ptr u32[256] a, reg u32 msf) -> reg ptr u32[256], #msf reg u32
 {
   reg u32 i; // ideally: reg size i; // similar to size_t
   inline int j;
@@ -10,6 +10,7 @@ inline fn __map1__reduce32_8380417(reg ptr u32[256] a) -> reg ptr u32[256]
   i = 0;
   while(i < N)
   {
+    msf = #update_msf((i < N), msf);
     for j=0 to 1
     {
       elem = a[(int) i];
@@ -18,6 +19,7 @@ inline fn __map1__reduce32_8380417(reg ptr u32[256] a) -> reg ptr u32[256]
       i += 1;
     }
   }
+  msf = #update_msf(!(i < N), msf);
 
   for j=0 to (N % 1)
   {
@@ -27,10 +29,10 @@ inline fn __map1__reduce32_8380417(reg ptr u32[256] a) -> reg ptr u32[256]
     i += 1;
   }
 
-  return a;
+  return a, msf;
 }//<>
 
-inline fn __map1__caddq(reg ptr u32[256] a) -> reg ptr u32[256]
+inline fn __map1__caddq(reg ptr u32[256] a, reg u32 msf) -> reg ptr u32[256], #msf reg u32
 {
   reg u32 i; // ideally: reg size i; // similar to size_t
   inline int j;
@@ -39,6 +41,7 @@ inline fn __map1__caddq(reg ptr u32[256] a) -> reg ptr u32[256]
   i = 0;
   while(i < N)
   {
+    msf = #update_msf((i < N), msf);
     for j=0 to 1
     {
       elem = a[(int) i];
@@ -47,7 +50,7 @@ inline fn __map1__caddq(reg ptr u32[256] a) -> reg ptr u32[256]
       i += 1;
     }
   }
-
+  msf = #update_msf(!(i < N), msf);
   for j=0 to (N % 1)
   {
     elem = a[(int) i];
@@ -56,7 +59,7 @@ inline fn __map1__caddq(reg ptr u32[256] a) -> reg ptr u32[256]
     i += 1;
   }
 
-  return a;
+  return a, msf;
 }//<>
 
 inline fn __map1__challenge(reg ptr u32[256] a) -> reg ptr u32[256]
