@@ -18,7 +18,7 @@ inline fn __rej_sample(
 ) -> reg ptr u32[N], reg u32, reg u32
 {
   inline bool b;
-  b = __cmp_b(t, q);
+  b = __cmp_b(t, q, msf);
 
   if (b) {
     msf = #update_msf(b, msf);

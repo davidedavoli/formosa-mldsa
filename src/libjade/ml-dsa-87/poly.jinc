@@ -628,7 +628,8 @@ fn _poly_uniform(reg ptr u32[N] a,
   sa = a; state = state_;
   state, msf = _stream128_init(state, seed, nonce, msf);
   a = sa;
-  
+  a = #protect_ptr(a, msf);
+
   reg u32 ctr, ctr4, pos, q, t;
   reg u32[3] buf;
 
@@ -637,7 +638,8 @@ fn _poly_uniform(reg ptr u32[N] a,
   while { ctr4 = ctr + 4; } (ctr4 < N) {
     msf = #update_msf(ctr4 < N, msf);
     state, a, pos, ctr, q, buf, msf = _stream128_refill_buffer(state, a, pos, ctr, q, msf);
-
+    a = #protect_ptr(a, msf);
+    ctr = #protect(ctr, msf);
     a, ctr, msf = __extr_rej_sample(a, ctr, buf[0], q, msf);  // 3 bytes in buf[0]
 
     t = buf[0] >>u 24;
@@ -657,6 +659,8 @@ fn _poly_uniform(reg ptr u32[N] a,
     msf = #update_msf((ctr < N), msf);
     state, a, pos, ctr, q, buf, msf = _stream128_refill_buffer(state, a, pos, ctr, q, msf);
 
+    a = #protect_ptr(a, msf);
+    ctr = #protect(ctr, msf);
     a, ctr, msf = __extr_rej_sample(a, ctr, buf[0], q, msf);  // 3 bytes in buf[0]
 
     if (ctr < N) {

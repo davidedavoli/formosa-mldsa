@@ -90,9 +90,13 @@ inline fn __cmp_lt_u_imm(inline u32 in_1, reg u32 in_2) -> inline bool {
 
 
 
-inline fn __cmp_b(reg u32 in_1, reg u32 in_2) -> inline bool {
+inline fn __cmp_b(reg u32 in_1, reg u32 in_2, reg u32 msf) -> inline bool {
   inline bool b;
-  b = (in_1 <u in_2);
+  reg u32 x z;
+  z = 1;
+  #declassify x = #SLTU(in_1, in_2);
+  x = #protect(x, msf);
+  b = (x == z);
   return b;
 }
 
