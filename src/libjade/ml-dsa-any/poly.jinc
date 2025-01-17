@@ -291,7 +291,7 @@ fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed, reg u32 msf) 
       /* We can certainly declassify the value of b */
       pos += 1;
       b = #protect(b, msf);
-      #declassify test = __cmp_gt_u(j, b); /* b > j */      
+      #declassify test = __cmp_gt_u(b, j); /* b > j */      
 
     } (test) { msf = #update_msf(test, msf); }
     msf = #update_msf(!test, msf); 
