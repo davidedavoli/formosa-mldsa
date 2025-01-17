@@ -92,24 +92,34 @@ int32_t JASMIN_MLDSA_use_hint(int32_t a, unsigned int hint) {
 */
 
 // Precondition q = Q
-inline fn __use_hint(reg u32 a, reg u32 hint, reg u32 q) -> reg u32 {
+inline fn __use_hint(reg u32 a, reg u32 hint, reg u32 q, reg u32 msf) -> reg u32, #msf reg u32 {
   reg u32 a0 a1;
   inline bool gt le;
 
   a0, a1 = __decompose_a0a1(a, q);
 
   if (hint != 0) {
+   msf = #update_msf((hint != 0), msf);
    gt, le = __cmp_gt_le_zero(a0);
 
 
    if (gt) {
-      a1 += 1;
+     msf = #update_msf(gt, msf);
+     a1 += 1;
+   } else { 
+     msf = #update_msf(!gt, msf);
    }
    if (le) {
+     msf = #update_msf(le, msf);
      a1 -=1 ;
+   } else {
+     msf = #update_msf(!le, msf);
    }
 
     a1 &= 15;
+  } else { 
+    msf = #update_msf(!(hint != 0), msf);
   }
-  return a1;
+  
+  return a1, msf;
 }
