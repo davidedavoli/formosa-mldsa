@@ -438,7 +438,7 @@ fn _polyveck_pack_w1(
 fn _polyvec_matrix_expand(
   reg ptr u32[matKL] mat,
   reg ptr u8[SEEDBYTES] rho,
-  reg u32 msf
+  #msf reg u32 msf
 ) -> reg ptr u32[matKL], #msf reg u32 {
   inline int i j;
   reg ptr u32[N] pmat;

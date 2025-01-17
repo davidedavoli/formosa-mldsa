@@ -295,7 +295,7 @@ fn _unpack_sk
    reg ptr u32[polyvecl] s1,
    reg ptr u32[polyveck] s2,
    reg ptr u8[JASMIN_MLDSA_CRYPTO_SECRETKEYBYTES] sk,
-   reg u32 msf)
+   #msf reg u32 msf)
   -> reg ptr u8[SEEDBYTES], reg ptr u8[TRBYTES], reg ptr u8[SEEDBYTES],
      reg ptr u32[polyveck], reg ptr u32[polyvecl], reg ptr u32[polyveck], #msf reg u32
      // rho, tr, key, t0, s1, s2

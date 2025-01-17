@@ -77,7 +77,7 @@ fn _polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a, #msf reg u
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
 
-inline fn __polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, #msf reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
+inline fn __polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
 
   reg u32 i, j;
   reg u32[3] t;
@@ -147,7 +147,7 @@ inline fn __polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, 
   return r, msf;  
 }
 
-fn _polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, #msf reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a,  reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   r, msf = __polyeta_unpack(r, a, msf);
   return r, msf;
 } 
@@ -529,7 +529,7 @@ inline fn __polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a, #msf
   return r, msf;
 }
 
-fn _polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a, #msf reg u32 msf) -> reg ptr u8[POLYW1_PACKEDBYTES], reg u32 {
+fn _polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a, #msf reg u32 msf) -> reg ptr u8[POLYW1_PACKEDBYTES], #msf reg u32 {
   r, msf = __polyw1_pack(r, a, msf);
   return r, msf;
 }
@@ -703,8 +703,8 @@ inline fn __extr_rej_sample(
 fn _poly_uniform(reg ptr u32[N] a,
                  reg ptr u8[SEEDBYTES] seed,
                  reg u32 nonce,
-		 reg u32 msf
-) -> reg ptr u32[N], reg u32 
+		 #msf reg u32 msf
+) -> reg ptr u32[N], #msf reg u32 
 {
   stack u32[25*2] state_;
   reg ptr u32[25*2] state;
