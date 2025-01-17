@@ -22,7 +22,7 @@ $(JASMIN_OBJECTS): library_export_$(arch).s
 
 $(ASM_JASMIN_FILES):
 %.s: %.jazz
-	$(JASMINC) -arch=$(arch) -o $@ $<
+	$(JASMINC) -arch=$(arch) -pall -o $@ $<
 
 #-------------------------------------------------------------------------------
 

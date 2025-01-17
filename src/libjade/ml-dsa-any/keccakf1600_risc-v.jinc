@@ -321,7 +321,7 @@ inline fn __get_RC(
 }
 
 
-inline fn __keccakf1600_ref(reg ptr u32[25*2] a, reg u32 msf) -> reg ptr u32[25*2], reg u32
+inline fn __keccakf1600_ref(reg ptr u32[25*2] a, #msf reg u32 msf) -> reg ptr u32[25*2], #msf reg u32
 {
   reg ptr u32[24*2] RC;
   stack ptr u32[24*2] RC_s;
@@ -376,14 +376,14 @@ inline fn __keccakf1600_ref(reg ptr u32[25*2] a, reg u32 msf) -> reg ptr u32[25*
 
 
 #[returnaddress=stack]
-fn _keccakf1600_ref(reg ptr u32[25*2] a, reg u32 msf) -> reg ptr u32[25*2], reg u32
+fn _keccakf1600_ref(reg ptr u32[25*2] a, reg u32 msf) -> reg ptr u32[25*2], #msf reg u32
 {
   a, msf = __keccakf1600_ref(a, msf);
   return a, msf;
 }
 
 
-inline fn _keccakf1600_ref_(reg ptr u32[25*2] a, reg u32 msf) -> reg ptr u32[25*2], reg u32
+inline fn _keccakf1600_ref_(reg ptr u32[25*2] a, reg u32 msf) -> reg ptr u32[25*2], #msf reg u32
 {
   a = a;
   a, msf = _keccakf1600_ref(a, msf);

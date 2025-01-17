@@ -15,7 +15,7 @@ inline fn __rej_sample(
   #secret reg u32 t,
   #secret reg u32 q, 
   reg u32 msf
-) -> reg ptr u32[N], reg u32, reg u32
+) -> reg ptr u32[N], reg u32, #msf reg u32
 {
   inline bool b;
   b = __cmp_b(t, q, msf);

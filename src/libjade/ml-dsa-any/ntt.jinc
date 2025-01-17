@@ -71,7 +71,7 @@ inline fn __mul_montgomery_reduce_8380417(reg u32 x, reg u32 y) -> reg u32 {
 
 }
 
-inline fn __ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
 
   reg u32 len start j k;
   reg u32 zeta t;
@@ -79,7 +79,8 @@ inline fn __ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
   reg ptr u32[N] zetas;  
   reg u32 start_len j_len aj aj_len;
   k = 0;
-   /* for (len = 128; len > 0; len >>= 1) { */
+  reg u32 tmpN = N;
+/* for (len = 128; len > 0; len >>= 1) { */
    len = 128;
    while {
      start = 0;
@@ -114,21 +115,21 @@ inline fn __ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
        msf = #update_msf(!(j < start_len), msf);
        start = j_len;  // start = start + 2 * len
        
-     } (start < N){
-       msf = #update_msf((start < N), msf);
+     } (start < tmpN){
+       msf = #update_msf((start < tmpN), msf);
      }
-     msf = #update_msf(!(start < N), msf);
+     msf = #update_msf(!(start < tmpN), msf);
      //?{zf}, len = #LSRS(len, 1);
      len = len >> 1;
    } (len != 0){
-   msf = #update_msf((len!=0), msf);
+   msf = #update_msf((len != 0), msf);
    }
-   msf = #update_msf(!(len!=0), msf);
+   msf = #update_msf(!(len != 0), msf);
   
   return a, msf;
 }
 
-fn _ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   a, msf = __ntt(a, msf);
   return a, msf;
 } 
@@ -169,7 +170,7 @@ void JASMIN_MLDSA_invntt_tomont(int32_t a[N]) {
 }
 */
 
-inline fn __invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
 
   reg u32 len start j k;
   reg u32 zeta t;
@@ -179,7 +180,8 @@ inline fn __invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg 
 
   k = 256;
   /* for (len = 1; len < N; len <<= 1) */
-  len = 1; 
+  len = 1;
+  reg u32 tmpN = N;
   while {
     /* for (start = 0; start < N; start = j + len) */
     start = 0;
@@ -210,16 +212,16 @@ inline fn __invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg 
       }
       msf = #update_msf(!(j< start_len), msf);
       start = j_len;  // start = start + 2 * len
-    }  (start < N){
-    msf = #update_msf((start < N), msf);
+    }  (start < tmpN){
+    msf = #update_msf((start < tmpN), msf);
     }
-    msf = #update_msf(!(start < N), msf);
+    msf = #update_msf(!(start < tmpN), msf);
     len <<= 1; 
     
-  } (len < N){
-    msf = #update_msf((len < N), msf);
+  } (len < tmpN){
+    msf = #update_msf((len < tmpN), msf);
   }
-  msf = #update_msf(!(len < N), msf);
+  msf = #update_msf(!(len < tmpN), msf);
   reg u32 f; 
   f = 41978; // mont^2/256
   
@@ -232,15 +234,15 @@ inline fn __invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg 
     a[(int) j] = aj;
   
     j+=1;
-  } (j < N){
-  msf = #update_msf((j<N), msf); 
+  } (j < tmpN){
+  msf = #update_msf((j < tmpN), msf); 
   }
-  msf = #update_msf(!(j<N), msf); 
+  msf = #update_msf(!(j < tmpN), msf); 
 
   return a, msf;
 }
 
-fn _invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   a, msf = __invntt_tomont(a, msf);
   return a, msf;
 }

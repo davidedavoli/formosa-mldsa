@@ -16,7 +16,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
                reg ptr u32[polyveck] h, 
                reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig,
                reg u32 msf) ->
-         reg ptr u8[CTILDEBYTES], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32, reg u32 {
+         reg ptr u8[CTILDEBYTES], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32, #msf reg u32 {
     // fixme this should be in the export function not here
     sig = sig; c = c; z = z; h = h;
 
@@ -57,12 +57,13 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
         // FIXME : introduce a local function to not duplicate the code
         j = 0;
         // FIXME improve this loop
-        while (j < N) {
-          msf = #update_msf((j < N), msf);
+	reg u32 tmpN = N;
+        while (j < tmpN) {
+          msf = #update_msf((j < tmpN), msf);
           nh[j] = r0;
           j += 1;
         } 
-        msf = #update_msf(!(j < N), msf);
+        msf = #update_msf(!(j < tmpN), msf);
         sroi = (32u)pptsig[OMEGA + i];
         sroi = #protect(sroi, msf);
         if (sroi <32u k) {
@@ -72,11 +73,12 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
            msf = #update_msf(!(sroi <32u k), msf);
         } 
 
-        if (sroi >32u OMEGA) {
-           msf = #update_msf((sroi >32u OMEGA), msf);
+	reg u32 tmpOMEGA = OMEGA;
+        if (sroi >32u tmpOMEGA) {
+           msf = #update_msf((sroi >32u tmpOMEGA), msf);
            status = 1;
         } else {
-           msf = #update_msf(!(sroi >32u OMEGA), msf);
+           msf = #update_msf(!(sroi >32u tmpOMEGA), msf);
         }
 
 
@@ -131,8 +133,9 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
     if (status == 0) {
       msf = #update_msf((status == 0), msf);
       j = k;
-      while(j <32u OMEGA) {
-        msf = #update_msf((j <32u OMEGA), msf);
+      reg u32 tmpOMEGA = OMEGA;
+      while(j <32u tmpOMEGA) {
+        msf = #update_msf((j <32u tmpOMEGA), msf);
         sj = (32u)pptsig[j];
         sj = #protect(sj, msf);
         if (sj != 0) {
@@ -144,7 +147,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
           j += 1; 
         }
       }
-      msf = #update_msf(!(j <32u OMEGA), msf);
+      msf = #update_msf(!(j <32u tmpOMEGA), msf);
     } else {
       msf = #update_msf(!(status == 0), msf);        
     }

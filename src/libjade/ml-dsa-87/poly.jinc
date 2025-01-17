@@ -9,9 +9,10 @@
 **************************************************/
 
 inline fn __polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) ->
-       reg ptr u8[POLYETA_PACKEDBYTES], reg u32 {
+       reg ptr u8[POLYETA_PACKEDBYTES], #msf reg u32 {
   reg u32 i, j;
   reg u32[8] t;
+  reg u32 tmpN = N;
   /*
   for (i = 0; i < N / 8; ++i) {
       t[0] = (uint8_t) (ETA - a->coeffs[8 * i + 0]);
@@ -30,9 +31,9 @@ inline fn __polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a, re
   */
 
   i = 0; j = 0;
-  while(i < N) {
+  while(i < tmpN) {
     inline int k;
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     for k = 0 to 8 {
       t[k] = __eta_minus_coeff(a, i);
       i += 1;
@@ -52,13 +53,13 @@ inline fn __polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a, re
     aux = __or_lsl_inplace(aux, t[7], 5);
     r[(int) j] = aux; j += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
 
   return r, msf;
 }
 
 fn _polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) ->
-       reg ptr u8[POLYETA_PACKEDBYTES], reg u32 {
+       reg ptr u8[POLYETA_PACKEDBYTES], #msf reg u32 {
    r, msf = __polyeta_pack(r, a, msf);
    return r, msf;
 }
@@ -76,10 +77,11 @@ inline fn __polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, 
   reg u32 i, j;
   reg u32[3] t;
   inline int k;
+  reg u32 tmpN = N;
   reg u32 aux;
   i = 0; j = 0;
-  while(i < N) {
-    msf = #update_msf((i < N), msf);
+  while(i < tmpN) {
+    msf = #update_msf((i < tmpN), msf);
     for k = 0 to 3 { t[k] = (32u) a[(int) j]; j +=1; }
 
     /* r->coeffs[8 * i + 0] =  (a[3 * i + 0] >> 0) & 7;
@@ -134,11 +136,11 @@ inline fn __polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, 
     aux = __imm_sub_reg_inplace(ETA, aux);
     r[(int) i] = aux; i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return r, msf;  
 }
 
-fn _polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   r, msf = __polyeta_unpack(r, a, msf);
   return r, msf;
 }
@@ -152,15 +154,16 @@ fn _polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, reg u32 
 *                            POLYT0_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-inline fn __polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT0_PACKEDBYTES], reg u32 {
+inline fn __polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT0_PACKEDBYTES], #msf reg u32 {
   reg u32 i, j, aux;
   reg u32[8] t;
+  reg u32 tmpN = N;
   inline int k;
     
   i = 0; j = 0;
-  while(i < N)
+  while(i < tmpN)
   {
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     for k = 0 to 8 {
       t[k] = a[(int) i]; i += 1;
       t[k] = __imm_sub_reg_inplace((1 << (D - 1)), t[k]);
@@ -230,11 +233,11 @@ inline fn __polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a, reg 
     aux = t[7] >> 5;
     r[(int)j] = aux; j += 1;  // j = 13
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return r, msf;
 }
 
-fn _polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT0_PACKEDBYTES], reg u32 {
+fn _polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT0_PACKEDBYTES], #msf reg u32 {
   r, msf = __polyt0_pack(r, a, msf);
   return r, msf;
 }
@@ -250,10 +253,11 @@ fn _polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf)
 inline fn __polyt0_unpack(reg ptr u32[N] r, reg ptr u8[POLYT0_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, j, a_;
   reg u32[8] t;
+  reg u32 tmpN = N;
   
   i = 0; j = 0;
-  while(i < N) {
-    msf = #update_msf((i < N), msf);
+  while(i < tmpN) {
+    msf = #update_msf((i < tmpN), msf);
     /*  r->coeffs[8 * i + 0]  = a[13 * i + 0];
         r->coeffs[8 * i + 0] |= (uint32_t)a[13 * i + 1] << 8;
         r->coeffs[8 * i + 0] &= 0x1FFF; */
@@ -358,11 +362,11 @@ inline fn __polyt0_unpack(reg ptr u32[N] r, reg ptr u8[POLYT0_PACKEDBYTES] a, re
         r->coeffs[8 * i + 6] = (1 << (D - 1)) - r->coeffs[8 * i + 6];
         r->coeffs[8 * i + 7] = (1 << (D - 1)) - r->coeffs[8 * i + 7]; */
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return r, msf;
 }
 
-fn _polyt0_unpack(reg ptr u32[N] r, reg ptr u8[POLYT0_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _polyt0_unpack(reg ptr u32[N] r, reg ptr u8[POLYT0_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   r, msf = __polyt0_unpack(r, a, msf);
   return r, msf;
 }  
@@ -377,14 +381,15 @@ fn _polyt0_unpack(reg ptr u32[N] r, reg ptr u8[POLYT0_PACKEDBYTES] a, reg u32 ms
 *                            POLYT1_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-inline fn __polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT1_PACKEDBYTES], reg u32 {
+inline fn __polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT1_PACKEDBYTES], #msf reg u32 {
   reg u32 i, j, aux;
   reg u32[4] t;
+  reg u32 tmpN = N;
   inline int k;
   i = 0; j = 0;
-  while(i < N)
+  while(i < tmpN)
   {
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     for k = 0 to 4 {
       t[k] = a[(int) i]; i += 1;
     }
@@ -410,11 +415,11 @@ inline fn __polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg 
     aux = t[3] >> 2;
     r[(int) j] = aux; j += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return r, msf;
 }
 
-fn _polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT1_PACKEDBYTES], reg u32 {
+fn _polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT1_PACKEDBYTES], #msf reg u32 {
   r, msf = __polyt1_pack(r, a, msf);
   return r, msf;
 }	 
@@ -428,14 +433,15 @@ fn _polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf)
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
-inline fn __polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, j, aux;
   reg u32[5] t;
+  reg u32 tmpN;
   inline int k;
   i = 0; j = 0;
-  while(i < N)
+  while(i < tmpN)
   {
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     for k = 0 to 5 {
       t[k] = (32u) a[(int) j]; j += 1;
     }	
@@ -465,11 +471,11 @@ inline fn __polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, re
     r[(int) i] = aux; i += 1;
     
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return r, msf;
 }
 
-fn _polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   r, msf = __polyt1_unpack(r, a, msf);
   return r, msf;
 }
@@ -485,22 +491,23 @@ fn _polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, reg u32 ms
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 
-inline fn __polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYW1_PACKEDBYTES], reg u32 {
+inline fn __polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYW1_PACKEDBYTES], #msf reg u32 {
   reg u32 i, j, aux;
   reg u32[2] t;
   inline int k;
+  reg u32 tmpN = N;
   i = 0; j = 0;
-  while (i < N) {
-    msf = #update_msf((i < N), msf);
+  while (i < tmpN) {
+    msf = #update_msf((i < tmpN), msf);
     for k = 0 to 2 { t[k] = a[(int) i]; i += 1; }
     aux = __or_lsl(t[0], t[1], 4);
     r[(int) j] = aux; j += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return r, msf;
 }
 
-fn _polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYW1_PACKEDBYTES], reg u32 {
+fn _polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYW1_PACKEDBYTES], #msf reg u32 {
   r, msf = __polyw1_pack(r, a, msf);
   return r, msf;
 }
@@ -516,16 +523,17 @@ fn _polyw1_pack(reg ptr u8[POLYW1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf)
 *                            POLYZ_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-inline fn __polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYZ_PACKEDBYTES], reg u32 {
+inline fn __polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYZ_PACKEDBYTES], #msf reg u32 {
   reg u32 i, j, aux, gamma1;
   reg u32[2] t;
   inline int k;
+  reg u32 tmpN= N;
 
   gamma1 = iGAMMA1;
 
   i = 0; j = 0;
-  while (i < N) {
-    msf = #update_msf((i < N), msf);
+  while (i < tmpN) {
+    msf = #update_msf((i < tmpN), msf);
     for k = 0 to 2 {
        t[k] = a[(int) i]; t[k] = gamma1 - t[k];
        i += 1;
@@ -554,7 +562,7 @@ inline fn __polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a, reg u3
     r[(int) j] = aux; j += 1;
 
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return r, msf;
 }
 
@@ -573,15 +581,18 @@ fn _polyz_pack(reg ptr u8[POLYZ_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
 
-inline fn __polyz_unpack(reg ptr u32[N] r, reg ptr u8[POLYZ_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __polyz_unpack(reg ptr u32[N] r, reg ptr u8[POLYZ_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, j, gamma1, aux;
   reg u32[5] t;
   inline int k;
   
   gamma1 = iGAMMA1;
   i = 0; j = 0;
-  while(i < N) {
-    msf = #update_msf(i < N, msf);
+
+  reg u32 tmpN = N;
+
+  while(i < tmpN) {
+    msf = #update_msf(i < tmpN, msf);
     for k = 0 to 5 { t[k] = (32u) a[(int) j]; j += 1; }
     
     /* r->coeffs[2 * i + 0]  = a[5 * i + 0];  
@@ -608,11 +619,11 @@ inline fn __polyz_unpack(reg ptr u32[N] r, reg ptr u8[POLYZ_PACKEDBYTES] a, reg 
     /* r->coeffs[2 * i + 0] = GAMMA1 - r->coeffs[2 * i + 0]; */
     /* r->coeffs[2 * i + 1] = GAMMA1 - r->coeffs[2 * i + 1]; */
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return r, msf;
 }
 
-fn _polyz_unpack(reg ptr u32[N] r, reg ptr u8[POLYZ_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _polyz_unpack(reg ptr u32[N] r, reg ptr u8[POLYZ_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   r, msf = __polyz_unpack(r, a, msf);
   return r, msf;
 }
@@ -623,7 +634,7 @@ inline fn __extr_rej_sample(
   reg u32 t, 
   reg u32 q,
   reg u32 msf
-) -> reg ptr u32[N], reg u32, reg u32 
+) -> reg ptr u32[N], reg u32, #msf reg u32 
 {
   t = __ubfx(t, 0, 23);
   a, ctr, msf = __rej_sample(a, ctr, t, q, msf);
@@ -634,7 +645,7 @@ fn _poly_uniform(reg ptr u32[N] a,
                  reg ptr u8[SEEDBYTES] seed,
                  reg u32 nonce,
                  reg u32 msf
-) -> reg ptr u32[N], reg u32
+) -> reg ptr u32[N], #msf reg u32
 {
   stack u32[25*2] state_;
   reg ptr u32[25*2] state;
@@ -649,8 +660,10 @@ fn _poly_uniform(reg ptr u32[N] a,
 
   ctr = 0; pos = 0; q = __Q();
 
-  while { ctr4 = ctr + 4; } (ctr4 < N) {
-    msf = #update_msf(ctr4 < N, msf);
+  reg u32 tmpN = N;
+
+  while { ctr4 = ctr + 4; } (ctr4 < tmpN) {
+    msf = #update_msf(ctr4 < tmpN, msf);
     state, a, pos, ctr, q, buf, msf = _stream128_refill_buffer(state, a, pos, ctr, q, msf);
     a = #protect_ptr(a, msf);
     ctr = #protect(ctr, msf);
@@ -667,44 +680,44 @@ fn _poly_uniform(reg ptr u32[N] a,
     t = __ubfx(buf[2], 8, 23);
     a, ctr, msf = __rej_sample(a, ctr, t, q, msf);
   }
-  msf = #update_msf(!(ctr4 < N), msf);
+  msf = #update_msf(!(ctr4 < tmpN), msf);
 
-  while (ctr < N) {
-    msf = #update_msf((ctr < N), msf);
+  while (ctr < tmpN) {
+    msf = #update_msf((ctr < tmpN), msf);
     state, a, pos, ctr, q, buf, msf = _stream128_refill_buffer(state, a, pos, ctr, q, msf);
 
     a = #protect_ptr(a, msf);
     ctr = #protect(ctr, msf);
     a, ctr, msf = __extr_rej_sample(a, ctr, buf[0], q, msf);  // 3 bytes in buf[0]
 
-    if (ctr < N) {
-      msf = #update_msf((ctr < N), msf);
+    if (ctr < tmpN) {
+      msf = #update_msf((ctr < tmpN), msf);
       t = buf[0] >>u 24;
       t = __or_lsl_inplace(t, buf[1], 8); // 1 byte in buf[0] U 2 bytes in buf[1]
       a, ctr, msf = __extr_rej_sample(a, ctr, t, q, msf);
     } else {
-      msf = #update_msf(!(ctr < N), msf);
+      msf = #update_msf(!(ctr < tmpN), msf);
     }
 
-    if (ctr < N) {
-      msf = #update_msf((ctr < N), msf);
+    if (ctr < tmpN) {
+      msf = #update_msf((ctr < tmpN), msf);
       t = buf[1] >>u 16;
       t = __or_lsl_inplace(t, buf[2], 16); // 2 byte in buf[1] U 1 bytes in buf[2]
       a, ctr, msf = __extr_rej_sample(a, ctr, t, q, msf);
     } else {
-      msf = #update_msf(!(ctr < N), msf);
+      msf = #update_msf(!(ctr < tmpN), msf);
     }
 
-    if (ctr < N) {
-      msf = #update_msf((ctr < N), msf);
+    if (ctr < tmpN) {
+      msf = #update_msf((ctr < tmpN), msf);
       t = __ubfx(buf[2], 8, 23);
       a, ctr, msf = __rej_sample(a, ctr, t, q, msf);
     } else {
-      msf = #update_msf(!(ctr < N), msf);
+      msf = #update_msf(!(ctr < tmpN), msf);
     }
 
   }
-  msf = #update_msf(!(ctr < N), msf);
+  msf = #update_msf(!(ctr < tmpN), msf);
   return a, msf;
 } 
 
@@ -726,10 +739,11 @@ inline fn rej_eta(
   reg u32 t,
   reg u32 n205,
   reg u32 msf
-) -> reg ptr u32[N], reg u32, reg u32
+) -> reg ptr u32[N], reg u32, #msf reg u32
 {
-  if (t < 15) {
-    msf = #update_msf((t<15), msf);
+  reg u32 tmp15 = 15;
+  if (t < tmp15) {
+    msf = #update_msf((t<tmp15), msf);
     reg u32 aux;
     aux = t * n205;
     aux = aux >> 10;
@@ -740,7 +754,7 @@ inline fn rej_eta(
     ctr += 1;
   }
   else {
-    msf = #update_msf(!(t<15), msf);
+    msf = #update_msf(!(t<tmp15), msf);
   }
   return a, ctr, msf;
 }
@@ -749,7 +763,7 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
                  reg ptr u8[CRHBYTES] seed,
                  reg u32 nonce,
                  reg u32 msf
-) -> reg ptr u32[N], reg u32
+) -> reg ptr u32[N], #msf reg u32
 {
   stack u32[25*2] state_;
   reg ptr u32[25*2] state;
@@ -763,8 +777,10 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
 
   ctr = 0; pos = 0; n205 = 205;
 
-  while { ctr8 = ctr + 8; } (ctr8 < N) {
-    msf = #update_msf((ctr8 < N), msf);
+  reg u32 tmpN = N;
+
+  while { ctr8 = ctr + 8; } (ctr8 < tmpN) {
+    msf = #update_msf((ctr8 < tmpN), msf);
     state, a, pos, ctr, n205, buf, msf = _stream256_refill_buffer(state, a, pos, ctr, n205, msf);
     a = #protect_ptr(a, msf);
     ctr = #protect(ctr, msf);
@@ -778,10 +794,10 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
       a, ctr, msf = rej_eta(a, ctr, t, n205, msf);
     }     
   }
-  msf = #update_msf(!(ctr8 < N), msf);
+  msf = #update_msf(!(ctr8 < tmpN), msf);
 
-  while (ctr < N) {
-    msf = #update_msf((ctr < N), msf);
+  while (ctr < tmpN) {
+    msf = #update_msf((ctr < tmpN), msf);
     state, a, pos, ctr, n205, buf, msf = _stream256_refill_buffer(state, a, pos, ctr, n205, msf);
     inline int i;
     a = #protect_ptr(a, msf);
@@ -790,17 +806,17 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
     #declassify buf = buf;
     
     for i = 0 to 8 {
-      if ((i == 0) || (ctr < N)) {
-        msf = #update_msf(((i == 0) || (ctr < N)), msf);
+      if ((i == 0) || (ctr < tmpN)) {
+        msf = #update_msf(((i == 0) || (ctr < tmpN)), msf);
         t = __ubfx(buf, 4*i, 4);
         t = #protect(t, msf);
         a, ctr, msf = rej_eta(a, ctr, t, n205, msf);
       } else {
-        msf = #update_msf(!((i == 0) || (ctr < N)), msf);
+        msf = #update_msf(!((i == 0) || (ctr < tmpN)), msf);
       }
     }       
   }
-  msf = #update_msf(!(ctr < N), msf);
+  msf = #update_msf(!(ctr < tmpN), msf);
 
   return a, msf;
 } 
@@ -813,7 +829,7 @@ fn _poly_uniform_gamma1(reg ptr u32[N] a,
                  reg ptr u8[CRHBYTES] seed,
                  reg u32 nonce,
                  reg u32 msf
-) -> reg ptr u32[N], reg u32
+) -> reg ptr u32[N], #msf reg u32
 {
   stack u8[POLYZ_PACKEDBYTES] buf_;
   reg ptr u8[POLYZ_PACKEDBYTES] buf;
@@ -837,13 +853,14 @@ fn _poly_uniform_gamma1(reg ptr u32[N] a,
 
   reg u32 i, t;
   i = 0;
-  while (i < POLYZ_LAST_SZ / 4) {
-    msf = #update_msf(i < POLYZ_LAST_SZ / 4, msf);
+  reg u32 tmpPLS = POLYZ_LAST_SZ / 4;
+  while (i < tmpPLS) {
+    msf = #update_msf((i < tmpPLS), msf);
     t = state[(int) i];
     bufc[u32 (int) i] = t;
     i += 1;
   }
-  msf = #update_msf(!(i < POLYZ_LAST_SZ / 4), msf);
+  msf = #update_msf(!(i < tmpPLS), msf);
   buf_[  POLYZ_LAST : POLYZ_LAST_SZ] = bufc;
 
   buf = buf_; a = sa;

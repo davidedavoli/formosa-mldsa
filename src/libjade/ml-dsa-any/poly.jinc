@@ -62,13 +62,13 @@ inline fn shift_right(reg u32[2] x, inline int i) -> reg u32[2]
 *
 * Arguments:   - poly *a: pointer to input/output polynomial
 **************************************************/
-inline fn __poly_reduce(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32
+inline fn __poly_reduce(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32
 {
   a, msf = __map1__reduce32_8380417(a, msf);
   return a, msf;
 }
 
-fn _poly_reduce(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _poly_reduce(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
    a, msf = __poly_reduce(a, msf);
    return a, msf;
 }
@@ -83,13 +83,13 @@ fn _poly_reduce(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
 * Arguments:   - poly *a: pointer to input/output polynomial
 **************************************************/
 
-inline fn __poly_caddq(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32
+inline fn __poly_caddq(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32
 {
   a, msf = __map1__caddq(a, msf);
   return a, msf;
 }
 
-fn _poly_caddq(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32
+fn _poly_caddq(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32
 {
   a, msf = __poly_caddq(a, msf);
   return a, msf;
@@ -111,14 +111,15 @@ inline fn __poly_add_body(reg u32 coeff_a, reg u32 coeff_b) -> reg u32
   return coeff_a;
 }
 
-inline fn __poly_add_inplace(reg ptr u32[N] a b, reg u32 msf) -> reg ptr u32[N], reg u32
+inline fn __poly_add_inplace(reg ptr u32[N] a b, reg u32 msf) -> reg ptr u32[N], #msf reg u32
 {
   reg u32 i coeff_a coeff_b;
+  reg u32 tmpN = N;
 
   i = 0;
-  while(i < N)
+  while(i < tmpN)
   {
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     coeff_a = a[(int) i];
     coeff_b = b[(int) i];
     coeff_a = __poly_add_body(coeff_a, coeff_b);
@@ -126,12 +127,12 @@ inline fn __poly_add_inplace(reg ptr u32[N] a b, reg u32 msf) -> reg ptr u32[N],
 
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
 
   return a, msf;
 }
 
-fn _poly_add_inplace(reg ptr u32[N] a b, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _poly_add_inplace(reg ptr u32[N] a b, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   a, msf = __poly_add_inplace(a, b, msf);
   return a, msf;
 }
@@ -167,9 +168,10 @@ fn _poly_add2_inplace(reg ptr u32[N] a) -> reg ptr u32[N]
 **************************************************/
 
 /* FIXME: Add a warning indicating that the function use declassify and should be use carefully */
-inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, reg u32 {
+inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, #msf reg u32 {
   reg u32 r;
   reg u32 q;
+
   r = 0;
   q = __Q();
   q -= 1;
@@ -187,6 +189,7 @@ inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, r
   
     reg u32 i; i = 0;
   
+    reg u32 tmpN = N;
     while {
       t = a[(int) i];
       
@@ -207,16 +210,16 @@ inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, r
         msf = #update_msf(!ge, msf);   
       }
   
-    } (i != N) {
-      msf = #update_msf(i != N, msf);   
+    } (i != tmpN) {
+      msf = #update_msf(i != tmpN, msf);   
     } 
-    msf = #update_msf(!(i != N), msf); 
+    msf = #update_msf(!(i != tmpN), msf); 
 
   }
   return r, msf;
 }
 
-fn _poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, reg u32 {
+fn _poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, #msf reg u32 {
   reg u32 r;
   r, msf = __poly_chknorm(a, B, msf);
   return r, msf;
@@ -233,13 +236,14 @@ fn _poly_chknorm(reg ptr u32[N] a, reg u32 B, reg u32 msf) -> reg u32, reg u32 {
 *              - const uint8_t mu[]: byte array containing seed of length SEEDBYTES
 **************************************************/
 
-fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed, reg u32 msf) -> reg ptr u32[N], reg u32
+fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed, reg u32 msf) -> reg ptr u32[N], #msf reg u32
 {
   stack u32[PQC_SHAKECTX_BYTES*2] _state;
   reg ptr u32[PQC_SHAKECTX_BYTES*2] state;
 
   stack ptr u32[N] cs;
 
+  
   cs = c;
   state = _state;
 
@@ -261,29 +265,31 @@ fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed, reg u32 msf) 
   aux = 0;
   // FIXME improve this loop
   i = 0;
-  while (i < N) {
-    msf = #update_msf(i < N, msf);
+  reg u32 tmpN = N;
+  while (i < tmpN) {
+    msf = #update_msf(i < tmpN, msf);
     c[(int) i] = aux;
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
 
   reg u32 j;
   j = N - TAU;
   reg u32 b;
   inline bool test;
-  while (j < N) {
-    msf = #update_msf(j < N, msf);
+  while (j < tmpN) {
+    msf = #update_msf(j < tmpN, msf);
     while {
-      if (pos >= SHAKE256_RATE) {
-          msf = #update_msf(pos >= SHAKE256_RATE, msf);
+      reg u32 tmpSR = SHAKE256_RATE;
+      if (pos >= tmpSR) {
+          msf = #update_msf(pos >= tmpSR, msf);
           // save j pbuf c, signs
           js = j; cs = c; s_signs = #copy(signs);
           state, msf = _keccakf1600_ref(state, msf);
           j = js; c = cs;  signs = #copy(s_signs);
           pos = 0;
       } else { 
-        msf = #update_msf(!(pos >= SHAKE256_RATE), msf);
+        msf = #update_msf(!(pos >= tmpSR), msf);
       }
       j = #protect(j, msf);
       b = (32u) state[u8 (int) pos];
@@ -311,7 +317,7 @@ fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed, reg u32 msf) 
 
     j += 1;
   }
-  msf = #update_msf(!(j < N), msf);
+  msf = #update_msf(!(j < tmpN), msf);
 
   return c, msf;
 }
@@ -330,15 +336,16 @@ fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed, reg u32 msf) 
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 // equivalent to _poly_decompose(a1, a0, a1)
-fn _poly_decompose_inplace (reg ptr u32[N] a1, reg ptr u32[N] a0, reg u32 msf) -> reg ptr u32[N], reg ptr u32[N], reg u32 {
+fn _poly_decompose_inplace (reg ptr u32[N] a1, reg ptr u32[N] a0, reg u32 msf) -> reg ptr u32[N], reg ptr u32[N], #msf reg u32 {
   reg u32 i;
   reg u32 q;
 
   q = __Q();
 
   i = 0;
-  while (i < N) {
-    msf = #update_msf((i < N), msf);
+  reg u32 tmpN = N;
+  while (i < tmpN) {
+    msf = #update_msf((i < tmpN), msf);
     reg u32 a0_, a1_, a_;
     a_ = a1[(int) i];
     a0_, a1_ = __decompose_a0a1(a_, q);
@@ -346,7 +353,7 @@ fn _poly_decompose_inplace (reg ptr u32[N] a1, reg ptr u32[N] a0, reg u32 msf) -
     a1[(int) i] = a1_;
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
 
   return a1, a0, msf;
 }
@@ -369,13 +376,14 @@ inline fn __eta_minus_coeff(reg ptr u32[N] a, reg u32 i) -> reg u32 {
 *              - const poly *h: pointer to input hint polynomial
 **************************************************/
 
-inline fn __poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, b_, h_, q;
+  reg u32 tmpN = N;
 
   q = __Q();
   i = 0;
-  while(i < N) {
-    msf = #update_msf((i < N), msf);
+  while(i < tmpN) {
+    msf = #update_msf((i < tmpN), msf);
     b_ = b[(int) i];
     h_ = h[(int) i];
     b_ = #protect(b_, msf);
@@ -384,11 +392,11 @@ inline fn __poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h, reg u32 ms
     b[(int) i] = b_;
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return b, msf;
 }
 
-fn _poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   b, msf = __poly_use_hint_inplace(b, h, msf);
   return b, msf;
 }
@@ -401,14 +409,14 @@ fn _poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h, reg u32 msf) -> re
 *
 * Arguments:   - poly *a: pointer to input/output polynomial
 **************************************************/
-inline fn __poly_ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __poly_ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   // We use _ntt and not __ntt because these functions read global data
   // and they need to be close to that data
   a, msf = _ntt(a, msf);
   return a, msf;
 }
 
-fn _poly_ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _poly_ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   a, msf = __poly_ntt(a, msf);
   return a, msf;
 }
@@ -422,12 +430,12 @@ fn _poly_ntt(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
 *
 * Arguments:   - poly *a: pointer to input/output polynomial
 **************************************************/
-inline fn __poly_invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __poly_invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   a, msf = __invntt_tomont(a, msf);
   return a, msf;
 }
 
-inline fn _poly_invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn _poly_invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   a, msf = _invntt_tomont(a, msf);
   return a, msf;
 }
@@ -443,43 +451,46 @@ inline fn _poly_invntt_tomont(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], 
 *              - const poly *a: pointer to first input polynomial
 *              - const poly *b: pointer to second input polynomial
 **************************************************/
-inline fn __poly_pointwise_montgomery(reg ptr u32[N] c, reg ptr u32[N] a, reg ptr u32[N] b, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __poly_pointwise_montgomery(reg ptr u32[N] c, reg ptr u32[N] a, reg ptr u32[N] b, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, a_, b_, c_;
+  reg u32 tmpN = N;
   i = 0;
-  while(i < N)
+  while(i < tmpN)
   {
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     a_ = a[(int) i]; b_ = b[(int) i];
     c_ = __mul_montgomery_reduce_8380417(a_, b_);
     c[(int) i] = c_;
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return c, msf;
 }
 
-inline fn __poly_pointwise_montgomery_inplace(reg ptr u32[N] c, reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __poly_pointwise_montgomery_inplace(reg ptr u32[N] c, reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, a_, c_;
   i = 0;
-  while(i < N)
+  reg u32 tmpN = N;
+
+  while(i < tmpN)
   {
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     a_ = a[(int) i];
     c_ = c[(int) i];
     c_ = __mul_montgomery_reduce_8380417(a_, c_);
     c[(int) i] = c_;
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return c, msf;
 }
 
-fn _poly_pointwise_montgomery(reg ptr u32[N] c, reg ptr u32[N] a, reg ptr u32[N] b, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _poly_pointwise_montgomery(reg ptr u32[N] c, reg ptr u32[N] a, reg ptr u32[N] b, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   c, msf = __poly_pointwise_montgomery(c, a, b, msf);
   return c, msf;
 }
 
-fn _poly_pointwise_montgomery_inplace(reg ptr u32[N] c, reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _poly_pointwise_montgomery_inplace(reg ptr u32[N] c, reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   c, msf = __poly_pointwise_montgomery_inplace(c, a, msf);
   return c, msf;
 }
@@ -498,13 +509,15 @@ fn _poly_pointwise_montgomery_inplace(reg ptr u32[N] c, reg ptr u32[N] a, reg u3
 * Returns number of 1 bits.
 **************************************************/
 /* FIXME: is it constant time? Check __make_hint */
-inline fn __poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1, reg u32 msf) -> reg u32, reg ptr u32[N], reg u32 {
+inline fn __poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1, reg u32 msf) -> reg u32, reg ptr u32[N], #msf reg u32 {
   reg u32 i, s, a0_, a1_, h_, gamma2;
   gamma2 = iGAMMA2;
   i = 0; s = 0;
-  while(i < N)
+
+  reg u32 tmpN = N;
+  while(i < tmpN)
   {
-    msf = #update_msf((i<N), msf);
+    msf = #update_msf((i<tmpN), msf);
     a0_ = a0[(int) i];
     a1_ = a1[(int) i];
     #declassify h_ = __make_hint(a0_, a1_, gamma2);
@@ -512,12 +525,12 @@ inline fn __poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a
     s += h_;
     i += 1;
   }
-  msf = #update_msf(!(i<N), msf);
+  msf = #update_msf(!(i<tmpN), msf);
   #declassify h = h; // h is init with h_ that is declassify
   return s, h, msf;
 }
 
-fn _poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1, reg u32 msf) -> reg u32, reg ptr u32[N], reg u32 {
+fn _poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1, reg u32 msf) -> reg u32, reg ptr u32[N], #msf reg u32 {
   reg u32 s;
   s, h, msf = __poly_make_hint(h, a0, a1, msf);
   return s, h, msf;
@@ -536,19 +549,20 @@ fn _poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1, reg u
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 
-fn _poly_power2round_inplace(reg ptr u32[N] a1, reg ptr u32[N] a0, reg u32 msf) -> reg ptr u32[N], reg ptr u32[N], reg u32 {
+fn _poly_power2round_inplace(reg ptr u32[N] a1, reg ptr u32[N] a0, reg u32 msf) -> reg ptr u32[N], reg ptr u32[N], #msf reg u32 {
   reg u32 i, a_, a0_, a1_;
 
   i = 0;
-  while(i < N)
+  reg u32 tmpN = N;
+  while(i < tmpN)
   {
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     a_ = a1[(int) i];
     a0_, a1_ = __power2round_a0a1(a_);
     a0[(int) i] = a0_; a1[(int) i] = a1_;
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return (a1, a0, msf);
 }
 
@@ -560,23 +574,24 @@ fn _poly_power2round_inplace(reg ptr u32[N] a1, reg ptr u32[N] a0, reg u32 msf) 
 *
 * Arguments:   - poly *a: pointer to input/output polynomial
 **************************************************/
-inline fn __poly_shiftl(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __poly_shiftl(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, a_;
 
   i = 0;
-  while(i < N)
+  reg u32 tmpN = N;
+  while(i < tmpN)
   {
-    msf = #update_msf((i < N), msf);
+    msf = #update_msf((i < tmpN), msf);
     a_ = a[(int) i];
     a_ <<= D;
     a[(int) i] = a_;
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return a, msf;
 }
 
-fn _poly_shiftl(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _poly_shiftl(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   a, msf = __poly_shiftl(a, msf);
   return a, msf;
 }
@@ -593,23 +608,24 @@ fn _poly_shiftl(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
 *                               subtraced from first input polynomial
 **************************************************/
 
-inline fn __poly_sub_inplace(reg ptr u32[N] a, reg ptr u32[N] b, reg u32 msf) -> reg ptr u32[N], reg u32 {
+inline fn __poly_sub_inplace(reg ptr u32[N] a, reg ptr u32[N] b, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, a_, b_, c_;
+  reg u32 tmpN = N;
 
   i = 0;
-  while(i < N) {
-    msf = #update_msf((i < N), msf);
+  while(i < tmpN) {
+    msf = #update_msf((i < tmpN), msf);
     a_ = a[(int) i];
     b_ = b[(int) i];
     c_ = a_ - b_;
     a[(int) i] = c_;
     i += 1;
   }
-  msf = #update_msf(!(i < N), msf);
+  msf = #update_msf(!(i < tmpN), msf);
   return a, msf;
 }
 
-fn _poly_sub_inplace(reg ptr u32[N] a, reg ptr u32[N] b, reg u32 msf) -> reg ptr u32[N], reg u32 {
+fn _poly_sub_inplace(reg ptr u32[N] a, reg ptr u32[N] b, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   a, msf = __poly_sub_inplace(a, b, msf);
   return a, msf;
 }
