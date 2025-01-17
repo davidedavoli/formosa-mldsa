@@ -269,18 +269,31 @@ unsigned int JASMIN_MLDSA_make_hint(int32_t a0, int32_t a1) {
 // gamma2 = GAMMA2
 inline fn __make_hint(reg u32 a0, reg u32 a1, reg u32 gamma2) -> reg u32
 {
-   reg u32 mgamma2, res, aux, zero;
+  reg u32 result tmp mgamma2 eq neq;
 
-   mgamma2 = -gamma2;
-   aux = a0 - mgamma2; 
-   res = #SLTIU(aux, 1); // 1 if aux <u 1, i.e 1 if aux == 0, i.e 1 if a0 == -GAMMA2
-   zero = 0;
-   // FIXME : Jasmin add instruction snez seqz
-   aux = #SLTU(zero, a1); // snez a1; 1 if a1 <> 0, ie 1 if a1 != 0
-   res &= aux; //
-   aux = #SLT(a0, gamma2);
-   res |= aux;
-   aux = #SLT(a0, mgamma2);
-   res |= aux;
-   return res;
-}          
+  mgamma2 = -gamma2;
+
+  //a0 > GAMMA2
+  result = #SLT(gamma2, a0);
+  //a0 < -GAMMA2
+  tmp = #SLT(a0, mgamma2);
+
+  // a0 > GAMMA2 || a0 < -GAMMA2
+  result |= tmp;
+
+  // a0 == -GAMMA2
+  tmp = a0 ^ mgamma2;
+  eq = #SLTIU(tmp, 1);
+
+  // a1 != 0
+  neq = #SLTIU(a1, 1);
+  neq = #SLTIU(neq, 1);
+
+  // &&
+  tmp = eq & neq;
+
+  result |= tmp;
+  
+  return result;
+}
+
