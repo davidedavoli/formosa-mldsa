@@ -436,7 +436,7 @@ fn _polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf)
 inline fn __polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], #msf reg u32 {
   reg u32 i, j, aux;
   reg u32[5] t;
-  reg u32 tmpN;
+  reg u32 tmpN = N;
   inline int k;
   i = 0; j = 0;
   while(i < tmpN)
