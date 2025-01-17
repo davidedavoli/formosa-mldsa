@@ -669,8 +669,10 @@ fn _crypto_sign_signature_ctx
     chknorm, msf = _polyvecl_chknorm(s_z, bound, msf);
     () = #spill(sig);
     if (chknorm != 0) {
+      msf = #update_msf((chknorm != 0), msf);
       continue = 1;
     } else {
+      msf = #update_msf(!(chknorm != 0), msf);
       s2 = s_s2; h = s_h;
       h, msf = _polyveck_pointwise_poly_montgomery(h, cp, s2, msf);
       h, msf = _polyveck_invntt_tomont(h, msf); s_h = h;
@@ -681,8 +683,10 @@ fn _crypto_sign_signature_ctx
       bound = iGAMMA2 - BETA;
       chknorm, msf = _polyveck_chknorm(w0, bound, msf);
       if (chknorm != 0) {
+        msf = #update_msf((chknorm != 0), msf);
         continue = 1;
       } else {
+        msf = #update_msf(!(chknorm != 0), msf);
         cp = s_cp; t0 = s_t0;
         h = h;  // Needed for regalloc
         h, msf = _polyveck_pointwise_poly_montgomery(h, cp, t0, msf);
@@ -693,20 +697,27 @@ fn _crypto_sign_signature_ctx
         bound = iGAMMA2;
         chknorm, msf = _polyveck_chknorm(h, bound, msf);
         if (chknorm != 0) {
+          msf = #update_msf((chknorm != 0), msf);
           continue = 1;
         } else {
+          msf = #update_msf(!(chknorm != 0), msf);
           w0 = s_w0;
           w0, msf = _polyveck_add_inplace(w0, h, msf);
           s_w0 = w0; w1 = s_w1;
           reg u32 n;
           n, h, msf = _polyveck_make_hint(h, w0, w1, msf); s_h = h;
+          n = #protect(n, msf);
           inline bool test;
+          
           #declassify test = __cmp_lt_u_imm(OMEGA, n); // OMEGA < n; 
           // if (n > OMEGA) 
           if (test) {
+            msf = #update_msf(test, msf);
             continue = 1;
           } else {
+            msf = #update_msf(!test, msf);
             () = #unspill(sig);
+            sig = #protect_ptr(sig, msf);
             sig, msf = _pack_sig_nocopy(sig, s_z, h, msf);
             () = #spill(sig);
             continue = 0;
@@ -714,7 +725,10 @@ fn _crypto_sign_signature_ctx
         }
       }
     }
-  } (continue == 1)
+  } (continue == 1) { 
+    msf = #update_msf((continue == 1), msf);
+  }
+  msf = #update_msf(!(continue == 1), msf);
   status = 0;
   () = #unspill(sig);
   }
