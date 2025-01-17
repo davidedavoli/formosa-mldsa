@@ -787,7 +787,7 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
     // DD declassify buf because it is the output of hash
     #declassify buf = buf;
 
-  inline int i;
+    inline int i;
     for i = 0 to 8 {
       t = __ubfx(buf, 4*i, 4);
       t = #protect(t, msf);

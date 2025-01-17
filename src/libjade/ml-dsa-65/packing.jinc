@@ -14,8 +14,9 @@
 fn _unpack_sig(reg ptr u8[CTILDEBYTES] c, 
                reg ptr u32[polyvecl] z, 
                reg ptr u32[polyveck] h, 
-               reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig) ->
-         reg ptr u8[CTILDEBYTES], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32 {
+               reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig,
+               reg u32 msf) ->
+         reg ptr u8[CTILDEBYTES], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32, #msf reg u32 {
     // fixme this should be in the export function not here
     sig = sig; c = c; z = z; h = h;
 
@@ -37,11 +38,12 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
     for i = 0 to L {
       nz = z[i * N: N];
       nsig = sig[start_pos : POLYZ_PACKEDBYTES];
-      z[i * N: N] = _polyz_unpack(nz, nsig);
+      z[i * N: N], msf = _polyz_unpack(nz, nsig, msf);
       start_pos += POLYZ_PACKEDBYTES;
     }
 
     () = #unspill(c, h);
+    h = #protect_ptr(h, msf);
     status = 0;
     r0 = 0;
     r1 = 1;
@@ -50,65 +52,103 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
     for i = 0 to K {
 
       if (status == 0) { 
+        msf = #update_msf((status == 0), msf);
         nh = h[i * N: N];
         // FIXME : introduce a local function to not duplicate the code
         j = 0;
         // FIXME improve this loop
-        while (j < N) {
+        reg u32 tmpN = N;
+        while (j < tmpN) {
+          msf = #update_msf((j < tmpN), msf);
           nh[j] = r0;
           j += 1;
         } 
+        msf = #update_msf(!(j < tmpN), msf);
         sroi = (32u)pptsig[OMEGA + i];
+        sroi = #protect(sroi, msf);
         if (sroi <32u k) {
+           msf = #update_msf((sroi <32u k), msf);
            status = 1;
-        }
+        } else { 
+          msf = #update_msf(!(sroi <32u k), msf);
+        } 
 
-        if (sroi >32u OMEGA) {
+
+        reg u32 tmpOMEGA = OMEGA;
+        if (sroi >32u tmpOMEGA) {
+           msf = #update_msf((sroi >32u tmpOMEGA), msf);
            status = 1;
-        }
+        } else { 
+          msf = #update_msf(!(sroi >32u tmpOMEGA), msf);
+        } 
         if (status == 0) {
+          msf = #update_msf((status == 0), msf);
           j = k;
           sjm1 = (32u)pptsig[j];
+          sjm1 = #protect(sjm1, msf);
 	  if (j <32u sroi) {
+            msf = #update_msf((j <32u sroi), msf);
             nh[sjm1] = r1;
-	  }
+	  } else {
+            msf = #update_msf(!(j <32u sroi), msf);
+          }
           j += 1; 
           // this is safe because j = k <= OMEGA < OMEGA + K
           sj = (32u)pptsig[j]; 
+          sj = #protect(sj, msf);
           while (j <32u sroi) {
+            msf = #update_msf((j <32u sroi), msf);
             if (sj <=32u sjm1) { 
+              msf = #update_msf((sj <=32u sjm1), msf);          
               status = 1;
               j = sroi; // exit loop
             } else {
+              msf = #update_msf(!(sj <=32u sjm1), msf);          
               j += 1;
               nh[sj] = r1;
               // for the next iteration
               sjm1 = sj;
               // this is safe because j <= sroi <= OMEGA < OMEGA + K
-              sj = (32u)pptsig[j];                
+              sj = (32u)pptsig[j];   
+              sj = #protect(sj, msf);              
             }              
           }
-
+          msf = #update_msf(!(j <32u sroi), msf);
           if (status == 0) {
+            msf = #update_msf((status == 0), msf);
             k = sroi;
+          } else { 
+            msf = #update_msf(!(status == 0), msf);
           }
           // END FIXME : local function
+        } else { 
+          msf = #update_msf(!(status == 0), msf);
         }
         h[i * N : N] = nh; 
+      } else { 
+        msf = #update_msf(!(status == 0), msf);
       }
     }
     if (status == 0) {
+      msf = #update_msf((status == 0), msf);
       j = k;
-      while(j <32u OMEGA) {
+      reg u32 tmpOMEGA = OMEGA;
+      while(j <32u tmpOMEGA) {
+        msf = #update_msf((j <32u tmpOMEGA), msf);
         sj = (32u)pptsig[j];
+        sj = #protect(sj, msf);        
         if (sj != 0) {
+          msf = #update_msf((sj != 0), msf);
           j = OMEGA;
           status = 1; 
         } else { 
+          msf = #update_msf(!(sj != 0), msf);
           j += 1; 
         }
       }
-    }         
-
-    return c, z, h, status;
+      msf = #update_msf(!(j <32u tmpOMEGA), msf);
+    } else {
+      msf = #update_msf(!(status == 0), msf);
+    }
+    return c, z, h, status, msf;
 }
