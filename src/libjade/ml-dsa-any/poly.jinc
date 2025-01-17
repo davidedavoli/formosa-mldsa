@@ -369,24 +369,28 @@ inline fn __eta_minus_coeff(reg ptr u32[N] a, reg u32 i) -> reg u32 {
 *              - const poly *h: pointer to input hint polynomial
 **************************************************/
 
-inline fn __poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h) -> reg ptr u32[N] {
+inline fn __poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h, reg u32 msf) -> reg ptr u32[N], reg u32 {
   reg u32 i, b_, h_, q;
 
   q = __Q();
   i = 0;
   while(i < N) {
+    msf = #update_msf((i < N), msf);
     b_ = b[(int) i];
     h_ = h[(int) i];
-    b_ = __use_hint(b_, h_, q);
+    b_ = #protect(b_, msf);
+    h_ = #protect(h_, msf);
+    b_, msf = __use_hint(b_, h_, q, msf);
     b[(int) i] = b_;
     i += 1;
   }
-  return b;
+  msf = #update_msf(!(i < N), msf);
+  return b, msf;
 }
 
-fn _poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h) -> reg ptr u32[N] {
-  b = __poly_use_hint_inplace(b, h);
-  return b;
+fn _poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h, reg u32 msf) -> reg ptr u32[N], reg u32 {
+  b, msf = __poly_use_hint_inplace(b, h, msf);
+  return b, msf;
 }
 
 /*************************************************
@@ -532,18 +536,20 @@ fn _poly_make_hint(reg ptr u32[N] h, reg ptr u32[N] a0, reg ptr u32[N] a1, reg u
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 
-fn _poly_power2round_inplace(reg ptr u32[N] a1, reg ptr u32[N] a0) -> reg ptr u32[N], reg ptr u32[N] {
+fn _poly_power2round_inplace(reg ptr u32[N] a1, reg ptr u32[N] a0, reg u32 msf) -> reg ptr u32[N], reg ptr u32[N], reg u32 {
   reg u32 i, a_, a0_, a1_;
 
   i = 0;
   while(i < N)
   {
+    msf = #update_msf((i < N), msf);
     a_ = a1[(int) i];
     a0_, a1_ = __power2round_a0a1(a_);
     a0[(int) i] = a0_; a1[(int) i] = a1_;
     i += 1;
   }
-  return (a1, a0);
+  msf = #update_msf(!(i < N), msf);
+  return (a1, a0, msf);
 }
 
 /*************************************************
@@ -554,23 +560,25 @@ fn _poly_power2round_inplace(reg ptr u32[N] a1, reg ptr u32[N] a0) -> reg ptr u3
 *
 * Arguments:   - poly *a: pointer to input/output polynomial
 **************************************************/
-inline fn __poly_shiftl(reg ptr u32[N] a) -> reg ptr u32[N] {
+inline fn __poly_shiftl(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
   reg u32 i, a_;
 
   i = 0;
   while(i < N)
   {
+    msf = #update_msf((i < N), msf);
     a_ = a[(int) i];
     a_ <<= D;
     a[(int) i] = a_;
     i += 1;
   }
-  return a;
+  msf = #update_msf(!(i < N), msf);
+  return a, msf;
 }
 
-fn _poly_shiftl(reg ptr u32[N] a) -> reg ptr u32[N] {
-  a = __poly_shiftl(a);
-  return a;
+fn _poly_shiftl(reg ptr u32[N] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+  a, msf = __poly_shiftl(a, msf);
+  return a, msf;
 }
 
 /*************************************************

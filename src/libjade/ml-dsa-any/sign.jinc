@@ -31,8 +31,10 @@ fn _shake256_PUBLICKEYBYTES_TRBYTES(reg ptr u8[TRBYTES] outp,
   }
   (i < last)
   {
+    msf = #update_msf((i < last), msf);
     j = 0;
     while (j < SHAKE256_RATE >> 2) {
+      msf = #update_msf((j < SHAKE256_RATE >> 2), msf);
       t = inp[u32 (int)i];
       s = pstate[(int)j];
       t ^= s;
@@ -40,20 +42,26 @@ fn _shake256_PUBLICKEYBYTES_TRBYTES(reg ptr u8[TRBYTES] outp,
       i += 1;
       j += 1;
     }
+    msf = #update_msf(!(j < SHAKE256_RATE >> 2), msf);
     () = #spill(i, inp);
     pstate, msf = _keccakf1600_ref(pstate, msf);
     () = #unspill(i, inp);
+    i = #protect(i, msf);
+    inp = #protect_ptr(inp, msf);
   }
+  msf = #update_msf(!(i < last), msf);
 
   j = 0;
   while(i < JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES >> 2) {
+    msf = #update_msf((i < JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES >> 2), msf);
     t = inp[u32 (int)i];
     s = pstate[(int)j];
     t ^= s;
     pstate[(int)j] = t;
     i += 1;
     j += 1;
-  }
+  } 
+  msf = #update_msf(!(i < JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES >> 2), msf);
 
   /***
   *  FIXME : replace it by __add_block_end but warning
@@ -68,13 +76,16 @@ fn _shake256_PUBLICKEYBYTES_TRBYTES(reg ptr u8[TRBYTES] outp,
   pstate, msf = _keccakf1600_ref(pstate, msf);
 
   () = #unspill(outp);
+  outp = #protect_ptr(outp, msf);
   // FIXME this copy is not necessary if we return pstate, in that case it should be taken as argument
   i = 0;
   while (i < TRBYTES / 4) {
+    msf = #update_msf((i < TRBYTES / 4), msf);
     t = pstate[(int)i];
     outp[u32 (int)i] = t;
     i += 1;
   }
+  msf = #update_msf(!(i < TRBYTES / 4), msf);
 
   return outp, msf;
 }
@@ -162,12 +173,14 @@ fn _crypto_sign_keypair_seed(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, 
 
     /* Extract t1 and write public key */
     t1, msf = _polyveck_caddq(t1, msf);
-    t1, t0 = _polyveck_power2round_inplace(t1, t0);
+    t1, t0, msf = _polyveck_power2round_inplace(t1, t0, msf);
 
     () = #unspill(pk);
+    pk = #protect_ptr(pk, msf);
     rho = state[u8 0:SEEDBYTES];
     //() = #spill(s1, s2);
-    pk = _pack_pk(pk, rho, t1);
+    
+    pk, msf = _pack_pk(pk, rho, t1, msf);
 
     /* Compute H(rho, t1) and write secret key */
     () = #spill(pk);
@@ -178,7 +191,8 @@ fn _crypto_sign_keypair_seed(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, 
     key = state[u8 SEEDBYTES + CRHBYTES : SEEDBYTES];
 
     () = #unspill(sk);
-    sk = _pack_sk(sk, rho, tr, key, t0, s1, s2);
+    sk = #protect_ptr(sk, msf);
+    sk, msf = _pack_sk(sk, rho, tr, key, t0, s1, s2, msf);
     () = #unspill(pk);
 
     status = 0;
@@ -186,7 +200,7 @@ fn _crypto_sign_keypair_seed(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, 
     return pk, sk, status, msf;
 }
 
-fn _crypto_sign_keypair(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, reg ptr u8[JASMIN_MLDSA_CRYPTO_SECRETKEYBYTES] sk, reg u32 msf) -> reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES], reg ptr u8[JASMIN_MLDSA_CRYPTO_SECRETKEYBYTES], reg u32, reg u32 {
+fn _crypto_sign_keypair(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, reg ptr u8[JASMIN_MLDSA_CRYPTO_SECRETKEYBYTES] sk) -> reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES], reg ptr u8[JASMIN_MLDSA_CRYPTO_SECRETKEYBYTES], reg u32 {
     reg u32 status;
 
     stack u8[SEEDBYTES] seedbuf;
@@ -196,6 +210,8 @@ fn _crypto_sign_keypair(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, reg p
     stack u32[polyveck] s2, t1, t0;
 
     seedbuf = #randombytes(seedbuf);
+    reg u32 msf;
+    msf = #init_msf();
 
     /****
     * Implements shake256(seedbuf, 2 * SEEDBYTES + CRHBYTES, seedbuf, SEEDBYTES);
@@ -240,27 +256,29 @@ fn _crypto_sign_keypair(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, reg p
 
     /* Extract t1 and write public key */
     t1, msf = _polyveck_caddq(t1, msf);
-    t1, t0 = _polyveck_power2round_inplace(t1, t0);
+    t1, t0, msf = _polyveck_power2round_inplace(t1, t0, msf);
 
     () = #unspill(pk);
+    pk = #protect_ptr(pk, msf);
     rho = state[u8 0:SEEDBYTES];
     //() = #spill(s1, s2);
-    pk = _pack_pk(pk, rho, t1);
+    pk, msf = _pack_pk(pk, rho, t1, msf);
 
     /* Compute H(rho, t1) and write secret key */
     () = #spill(pk);
     tr, msf = _shake256_PUBLICKEYBYTES_TRBYTES(tr, pk, msf);
     () = #unspill(sk);
+    sk = #protect_ptr(sk, msf);
     reg ptr u8[SEEDBYTES] key;
 
     rho = state[u8 0:SEEDBYTES];
     key = state[u8 SEEDBYTES + CRHBYTES : SEEDBYTES];
-    sk = _pack_sk(sk, rho, tr, key, t0, s1, s2);
+    sk, msf = _pack_sk(sk, rho, tr, key, t0, s1, s2, msf);
     () = #unspill(pk);
 
     status = 0;
 
-    return pk, sk, status, msf;
+    return pk, sk, status;
 }
 
 /***
@@ -277,8 +295,10 @@ fn _shake256_inc_absorb_mem
 
   aux = __imm_sub_reg(SHAKE256_RATE, pos);
   if (aux <= mlen) {
-  // for (i = 0; i < r - (uint32_t)s_inc[25]; i++) {
+    msf = #update_msf((aux <= mlen), msf);
+  // for (i = 0; i < r - (uint32_t)s_inc[25]; i++) 
     while (pos < SHAKE256_RATE) {
+      msf = #update_msf((pos < SHAKE256_RATE), msf);
     // s_inc[(s_inc[25] + i) >> 3] ^= (uint64_t)m[i] << (8 * ((s_inc[25] + i) & 0x07));
       t = (u32)[m];
       s = pstate.[pos];
@@ -287,35 +307,46 @@ fn _shake256_inc_absorb_mem
       pos += 4; m += 4;
       mlen -= 4;
     }
-
+    msf = #update_msf(!(pos < SHAKE256_RATE), msf);
     while {
       () = #spill(m, mlen);
       pstate, msf = _keccakf1600_ref(pstate,msf);
       () = #unspill(m, mlen);
+      mlen = #protect(mlen, msf);
+      m = #protect(m, msf);
       pos = 0;
     }
     // FIXME: it will be good to be able to write (SHAKE256_RATE < mlen)
     (mlen > SHAKE256_RATE)
     {
+      msf = #update_msf((mlen > SHAKE256_RATE), msf);
       while (pos < SHAKE256_RATE) {
+        msf = #update_msf((pos < SHAKE256_RATE), msf);
         t = (u32)[m];
         s = pstate.[pos];
         s ^= t;
         pstate.[pos] = s;
         pos += 4; m += 4;
       }
+      msf = #update_msf(!(pos < SHAKE256_RATE), msf);
       mlen -= SHAKE256_RATE;
     }
-  }
+    msf = #update_msf(!(mlen > SHAKE256_RATE), msf);
+
+  } else {
+    msf = #update_msf(!(aux <= mlen), msf);
+  }       
 
   // Invariant mlen < SHAKE256_RATE - pos
   while (mlen > 0) {
+    msf = #update_msf((mlen > 0), msf);
     t = (32u)(u8)[m];
     s = (32u)pstate[u8 pos];
     s ^= t;
     pstate[u8 pos] = s;
     pos += 1; m += 1; mlen -= 1;
   }
+  msf = #update_msf(!(mlen > 0), msf);
   return pstate, pos, msf;
 }
 
@@ -416,27 +447,35 @@ fn _shake256_inc_absorb_KPOLYW1_PACKEDBYTES
   i = 0;
   pos = CRHBYTES;
   while (pos < SHAKE256_RATE) {
+    msf = #update_msf((pos < SHAKE256_RATE), msf);
     s = m.[u32 i];
     pstate.[pos] = s;
     pos += 4; i += 4;
   }
+  msf = #update_msf(!(pos < SHAKE256_RATE), msf);
 
   while {
     () = #spill(m, i);
     pstate, msf = _keccakf1600_ref(pstate, msf);
     () = #unspill(m, i);
+    i = #protect(i, msf);
+    m = #protect_ptr(m, msf);
     pos = 0;
   }
   (i < K * POLYW1_PACKEDBYTES)
   {
+    msf = #update_msf((i < K * POLYW1_PACKEDBYTES), msf);
     while (pos < SHAKE256_RATE) {
+      msf = #update_msf((pos < SHAKE256_RATE), msf);
       t = m.[u32 i];
       s = pstate.[pos];
       s ^= t;
       pstate.[pos] = s;
       pos += 4; i += 4;
     }
+    msf = #update_msf(!(pos < SHAKE256_RATE), msf);
   }
+  msf = #update_msf(!(i < K * POLYW1_PACKEDBYTES), msf);
 
   return pstate, pos, msf;
 }
@@ -787,15 +826,21 @@ fn _crypto_sign_signature_ctx_seed
 
   ctxlen = ctxlen_mlen_siglen[0];
 
-  if (ctxlen > 255) { status = - 1; }
-
+  if (ctxlen > 255) { 
+    msf = #update_msf((ctxlen > 255), msf);
+    status = - 1; 
+  } else {
+    msf = #update_msf(!(ctxlen > 255), msf);
+  }
   if (status == 0) {
+  msf = #update_msf((status == 0), msf);
 
   rho = s_rho; tr = s_tr; key = s_key_rnd_mu[0:SEEDBYTES];
   t0 = s_t0; s1 = s_s1; s2 = s_s2;
 
   () = #spill(sig, status, ctxlen);
   (rho, tr, key, t0, s1, s2, msf) = _unpack_sk(rho, tr, key, t0, s1, s2, sk, msf);
+  tr = #protect_ptr(tr, msf);
   s_rho = rho; s_tr = tr; s_t0 = t0; s_s1 = s1; s_s2 = s2;
   s_key_rnd_mu[0:SEEDBYTES] = key;
 
@@ -815,16 +860,22 @@ fn _crypto_sign_signature_ctx_seed
   ctx = ctx_m_rand[0];
   () = #spill(ctx_m_rand, ctxlen_mlen_siglen);
   () = #unspill(ctxlen);
+  ctx = #protect(ctx, msf);
+  ctxlen = #protect(ctxlen, msf);
   pstate, pos, msf = _shake256_inc_absorb_mem_naive(pstate, pos, ctx, ctxlen, msf);
   () = #unspill(ctx_m_rand, ctxlen_mlen_siglen);
+  ctxlen_mlen_siglen = #protect_ptr(ctxlen_mlen_siglen, msf);
+  ctx_m_rand = #protect_ptr(ctx_m_rand, msf);
   mlen = ctxlen_mlen_siglen[1];
   m = ctx_m_rand[1];
   () = #spill(ctx_m_rand);
+  m = #protect(m, msf);
+  mlen = #protect(mlen, msf);
   pstate, pos, msf = _shake256_inc_absorb_mem_naive(pstate, pos, m, mlen, msf);
   pstate = _shake256_inc_finalize(pstate, pos);
   pstate, msf = _keccakf1600_ref(pstate, msf);
   () = #unspill(ctx_m_rand);
-
+  ctx_m_rand = #protect_ptr(ctx_m_rand, msf);
   // FIXME define a function for that
   mu = s_key_rnd_mu[SEEDBYTES + RNDBYTES : CRHBYTES];
   for i = 0 to CRHBYTES/4 {
@@ -835,6 +886,7 @@ fn _crypto_sign_signature_ctx_seed
 
   rnd = s_key_rnd_mu[SEEDBYTES : RNDBYTES];
   reg u32 rand = ctx_m_rand[2];
+  rand = #protect(rand, msf);
   for i = 0 to RNDBYTES/4 {
     t = (u32)[rand + 4*i];
     rnd[u32 i] = t;
@@ -894,6 +946,7 @@ fn _crypto_sign_signature_ctx_seed
     w1, s_w0, msf = _polyveck_decompose_inplace(w1, w0, msf);
     s_w1 = w1;
     () = #unspill(sig);
+    sig = #protect_ptr(sig, msf);
     reg ptr u8[K * POLYW1_PACKEDBYTES] sig1;
     sig1 = sig[0: K * POLYW1_PACKEDBYTES];
     sig1, msf = _polyveck_pack_w1(sig1, w1, msf);
@@ -910,6 +963,7 @@ fn _crypto_sign_signature_ctx_seed
 
     reg ptr u8[CTILDEBYTES] sigctilde;
     () = #unspill(sig);
+    sig = #protect_ptr(sig, msf);
     sigctilde = sig[0:CTILDEBYTES];
     for i = 0 to CTILDEBYTES/4 {
       t = pstate[i];
@@ -936,8 +990,10 @@ fn _crypto_sign_signature_ctx_seed
     chknorm, msf = _polyvecl_chknorm(s_z, bound, msf);
     () = #spill(sig);
     if (chknorm != 0) {
+      msf = #update_msf((chknorm != 0), msf);
       continue = 1;
     } else {
+      msf = #update_msf(!(chknorm != 0), msf);
       s2 = s_s2; h = s_h;
       h, msf = _polyveck_pointwise_poly_montgomery(h, cp, s2, msf);
       h, msf = _polyveck_invntt_tomont(h, msf); s_h = h;
@@ -948,8 +1004,10 @@ fn _crypto_sign_signature_ctx_seed
       bound = iGAMMA2 - BETA;
       chknorm, msf = _polyveck_chknorm(w0, bound, msf);
       if (chknorm != 0) {
+        msf = #update_msf((chknorm != 0), msf);
         continue = 1;
       } else {
+        msf = #update_msf(!(chknorm != 0), msf);
         cp = s_cp; t0 = s_t0;
         h = h;  // Needed for regalloc
         h, msf = _polyveck_pointwise_poly_montgomery(h, cp, t0, msf);
@@ -960,17 +1018,23 @@ fn _crypto_sign_signature_ctx_seed
         bound = iGAMMA2;
         chknorm, msf = _polyveck_chknorm(h, bound, msf);
         if (chknorm != 0) {
+          msf = #update_msf((chknorm != 0), msf);
           continue = 1;
         } else {
+          msf = #update_msf(!(chknorm != 0), msf);
           w0 = s_w0;
           w0, msf = _polyveck_add_inplace(w0, h, msf);
           s_w0 = w0; w1 = s_w1;
           reg u32 n;
           n, h, msf = _polyveck_make_hint(h, w0, w1, msf); s_h = h;
+          n = #protect(n, msf);
           if (n > OMEGA) {
+            msf = #update_msf((n > OMEGA), msf);
             continue = 1;
           } else {
+            msf = #update_msf(!(n > OMEGA), msf);
             () = #unspill(sig);
+            sig = #protect_ptr(sig, msf);
             sig, msf = _pack_sig_nocopy(sig, s_z, h, msf);
             () = #spill(sig);
             continue = 0;
@@ -978,9 +1042,14 @@ fn _crypto_sign_signature_ctx_seed
         }
       }
     }
-  } (continue == 1)
+  } (continue == 1) {
+    msf = #update_msf((continue == 1), msf);
+  }
+  msf = #update_msf(!(continue == 1), msf);
   status = 0;
   () = #unspill(sig);
+  } else {
+    msf = #update_msf(!(status == 0), msf);
   }
   return sig, status, msf;
 }
@@ -1023,6 +1092,7 @@ fn _crypto_sign(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sm, reg u8 m, reg ptr u32[
 *
 * Returns 0 if signature could be verified correctly and -1 otherwise
 **************************************************/
+#[sct="{ ptr : transient, val : transient} * {ptr : transient, val :  transient} * {ptr : transient, val :  transient}* {ptr : transient, val :  transient} ->public"]
 fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u32[2] ctx_m, reg ptr u32[3] ctxlen_mlen_siglen, reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, reg u32 msf) -> reg u32, reg u32 {
     reg u32 status;
 
@@ -1045,35 +1115,63 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
 
     status = 0;
 
+    ctxlen_mlen_siglen = #protect_ptr(ctxlen_mlen_siglen, msf);
+    pk = #protect_ptr(pk, msf);
+    sig = #protect_ptr(sig, msf);
     ctxlen = ctxlen_mlen_siglen[0];
+    ctxlen = #protect(ctxlen, msf);
     siglen = ctxlen_mlen_siglen[2];
+    siglen = #protect(siglen, msf);
 
-    if (ctxlen > 255) { status = - 1; }
+    if (ctxlen > 255) { 
+      msf = #update_msf((ctxlen > 255), msf);
+      status = - 1; 
+    } else {
+      msf = #update_msf(!(ctxlen > 255), msf);
+    }
 
     reg u32 tmp;
     tmp = JASMIN_MLDSA_CRYPTO_BYTES;
-    if (siglen != tmp) { status = -1; }
+    if (siglen != tmp) { 
+      msf = #update_msf((siglen != tmp), msf);
+      status = -1; 
+    } else {
+      msf = #update_msf(!(siglen != tmp), msf);
+    }
 
     () = #spill(ctxlen_mlen_siglen, ctx_m, ctxlen, status);
-    rho, t1 = _unpack_pk(rho, t1, pk);
+    rho, t1, msf = _unpack_pk(rho, t1, pk, msf);
 
     reg u32 chk;
     () = #spill(pk);
     c, z, h, chk, msf = _unpack_sig(c, z, h, sig, msf);
     () = #unspill(pk);
     () = #unspill(status);
+    status = #protect(status, msf);
+    pk = #protect_ptr(pk, msf);
     () = #spill(sig);
 
     //FIXME for arm or improve riscv suport
-    if (chk == 1) { status = -1; }
-
+    if (chk == 1) { 
+      msf = #update_msf((chk == 1), msf);
+      status = -1; 
+    } else {
+      msf = #update_msf(!(chk == 1), msf);
+    }
+    
     if (status == 0) {
+      msf = #update_msf((status == 0), msf);
       reg u32 bound;
       bound = iGAMMA1 - BETA;
       chk, msf = _polyvecl_chknorm(z, bound, msf);
-      if (chk == 1) { status = -1; }
-
+      if (chk == 1) { 
+        msf = #update_msf((chk == 1), msf);
+        status = -1; 
+      } else {
+        msf = #update_msf(!(chk == 1), msf);
+      }
       if (status == 0) {
+        msf = #update_msf((status == 0), msf);
         () = #spill(status);
         mu, msf = _shake256_PUBLICKEYBYTES_TRBYTES(mu, pk, msf);
 
@@ -1083,6 +1181,8 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
         pstate, msf = __add_crh_ref(pstate, mu, msf); // TRBYTES = CRHBYTES
 
         () = #unspill(ctxlen_mlen_siglen, ctx_m);
+        ctxlen_mlen_siglen = #protect_ptr(ctxlen_mlen_siglen, msf);
+        ctx_m = #protect_ptr(ctx_m, msf);
         mu2 = mu[0 : 2];
         t = 0;
         mu2[0] = (8u)t;
@@ -1096,12 +1196,18 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
         pstate, msf = __add_zero_after_add_naive(pstate, TRBYTES + 2, msf);
         pos = TRBYTES + 2;
         ctx = ctx_m[0];
+        ctx = #protect(ctx, msf);
         () = #spill(ctx_m, ctxlen_mlen_siglen);
         () = #unspill(ctxlen);
+        ctxlen = #protect(ctxlen, msf);
         pstate, pos, msf = _shake256_inc_absorb_mem_naive(pstate, pos, ctx, ctxlen, msf);
         () = #unspill(ctx_m, ctxlen_mlen_siglen);
+        ctxlen_mlen_siglen = #protect_ptr(ctxlen_mlen_siglen, msf);
+        ctx_m = #protect_ptr(ctx_m, msf);
         mlen = ctxlen_mlen_siglen[1];
         m = ctx_m[1];
+        m = #protect(m, msf);
+        mlen = #protect(mlen, msf);
         pstate, pos, msf = _shake256_inc_absorb_mem_naive(pstate, pos, m, mlen, msf);
         pstate = _shake256_inc_finalize(pstate, pos);
         pstate, msf = _keccakf1600_ref(pstate, msf);
@@ -1121,16 +1227,20 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
         w1, msf = _polyvec_matrix_pointwise_montgomery(w1, mat, z, msf);
 
         cp, msf = _poly_ntt(cp, msf);
-        t1 = _polyveck_shiftl(t1);
+        t1, msf = _polyveck_shiftl(t1, msf);
         t1, msf = _polyveck_ntt(t1, msf);
         t1, msf = _polyveck_pointwise_poly_montgomery_inplace(t1, cp, msf);
 
         w1, msf = _polyveck_sub_inplace(w1, t1, msf);
+        // Why ?
+        #declassify w1 = w1;
         w1, msf = _polyveck_reduce(w1, msf);
         w1, msf = _polyveck_invntt_tomont(w1, msf);
 
         w1, msf = _polyveck_caddq(w1, msf);
-        w1 = _polyveck_use_hint_inplace(w1, h);
+        
+        #declassify h =  h;
+        w1, msf = _polyveck_use_hint_inplace(w1, h, msf);
         buf, msf = _polyveck_pack_w1(buf, w1, msf);
 
         pstate = state;
@@ -1145,22 +1255,38 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
           c2[u32 i] = t;
         }
 
+        // declassify c2 because it is filled in the
+	// foor loop above with public data
+        #declassify c2 = c2;
         // FIXME : must break early if needed
         () = #unspill(status);
+        status = #protect(status, msf);
         reg u32 ci c2i;
         for i = 0 to CTILDEBYTES {
           if (status == 0) {
+            msf = #update_msf((status== 0), msf);
             ci = (32u)c[i];
             c2i = (32u)c2[i];
+            ci = #protect(ci, msf);
+            c2i = #protect(c2i, msf);
             if (ci != c2i) {
+              msf = #update_msf((ci != c2i), msf);
               status = i + 1;
+            } else {
+              msf = #update_msf(!(ci != c2i), msf);
             }
+          } else {
+            msf = #update_msf(!(status== 0), msf);
           }
         }
+      } else {
+        msf = #update_msf(!(status == 0), msf);
       }
+    } else {
+      msf = #update_msf(!(status == 0), msf);
     }
 
-    return status, msf;
+    return (status, msf);
 }
 
 /*************************************************

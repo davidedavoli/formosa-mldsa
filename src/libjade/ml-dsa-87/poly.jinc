@@ -8,8 +8,8 @@
 *              - const poly *a: pointer to input polynomial
 **************************************************/
 
-inline fn __polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a) ->
-       reg ptr u8[POLYETA_PACKEDBYTES] {
+inline fn __polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) ->
+       reg ptr u8[POLYETA_PACKEDBYTES], reg u32 {
   reg u32 i, j;
   reg u32[8] t;
   /*
@@ -32,6 +32,7 @@ inline fn __polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a) ->
   i = 0; j = 0;
   while(i < N) {
     inline int k;
+    msf = #update_msf((i < N), msf);
     for k = 0 to 8 {
       t[k] = __eta_minus_coeff(a, i);
       i += 1;
@@ -51,14 +52,15 @@ inline fn __polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a) ->
     aux = __or_lsl_inplace(aux, t[7], 5);
     r[(int) j] = aux; j += 1;
   }
+  msf = #update_msf(!(i < N), msf);
 
-  return r;
+  return r, msf;
 }
 
-fn _polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a) ->
-       reg ptr u8[POLYETA_PACKEDBYTES] {
-   r = __polyeta_pack(r, a);
-   return r;
+fn _polyeta_pack(reg ptr u8[POLYETA_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) ->
+       reg ptr u8[POLYETA_PACKEDBYTES], reg u32 {
+   r, msf = __polyeta_pack(r, a, msf);
+   return r, msf;
 }
 
 /*************************************************
@@ -150,7 +152,7 @@ fn _polyeta_unpack(reg ptr u32[N] r, reg ptr u8[POLYETA_PACKEDBYTES] a, reg u32 
 *                            POLYT0_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-inline fn __polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a) -> reg ptr u8[POLYT0_PACKEDBYTES] {
+inline fn __polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT0_PACKEDBYTES], reg u32 {
   reg u32 i, j, aux;
   reg u32[8] t;
   inline int k;
@@ -158,6 +160,7 @@ inline fn __polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a) -> r
   i = 0; j = 0;
   while(i < N)
   {
+    msf = #update_msf((i < N), msf);
     for k = 0 to 8 {
       t[k] = a[(int) i]; i += 1;
       t[k] = __imm_sub_reg_inplace((1 << (D - 1)), t[k]);
@@ -227,12 +230,13 @@ inline fn __polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a) -> r
     aux = t[7] >> 5;
     r[(int)j] = aux; j += 1;  // j = 13
   }
-  return r;
+  msf = #update_msf(!(i < N), msf);
+  return r, msf;
 }
 
-fn _polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a) -> reg ptr u8[POLYT0_PACKEDBYTES] {
-  r = __polyt0_pack(r, a);
-  return r;
+fn _polyt0_pack(reg ptr u8[POLYT0_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT0_PACKEDBYTES], reg u32 {
+  r, msf = __polyt0_pack(r, a, msf);
+  return r, msf;
 }
 
 /*************************************************
@@ -373,13 +377,14 @@ fn _polyt0_unpack(reg ptr u32[N] r, reg ptr u8[POLYT0_PACKEDBYTES] a, reg u32 ms
 *                            POLYT1_PACKEDBYTES bytes
 *              - const poly *a: pointer to input polynomial
 **************************************************/
-inline fn __polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a) -> reg ptr u8[POLYT1_PACKEDBYTES] {
+inline fn __polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT1_PACKEDBYTES], reg u32 {
   reg u32 i, j, aux;
   reg u32[4] t;
   inline int k;
   i = 0; j = 0;
   while(i < N)
   {
+    msf = #update_msf((i < N), msf);
     for k = 0 to 4 {
       t[k] = a[(int) i]; i += 1;
     }
@@ -405,12 +410,13 @@ inline fn __polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a) -> r
     aux = t[3] >> 2;
     r[(int) j] = aux; j += 1;
   }
-  return r;
+  msf = #update_msf(!(i < N), msf);
+  return r, msf;
 }
 
-fn _polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a) -> reg ptr u8[POLYT1_PACKEDBYTES] {
-  r = __polyt1_pack(r, a);
-  return r;
+fn _polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a, reg u32 msf) -> reg ptr u8[POLYT1_PACKEDBYTES], reg u32 {
+  r, msf = __polyt1_pack(r, a, msf);
+  return r, msf;
 }	 
 
 /*************************************************
@@ -422,13 +428,14 @@ fn _polyt1_pack(reg ptr u8[POLYT1_PACKEDBYTES] r, reg ptr u32[N] a) -> reg ptr u
 * Arguments:   - poly *r: pointer to output polynomial
 *              - const uint8_t *a: byte array with bit-packed polynomial
 **************************************************/
-inline fn __polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a) -> reg ptr u32[N] {
+inline fn __polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
   reg u32 i, j, aux;
   reg u32[5] t;
   inline int k;
   i = 0; j = 0;
   while(i < N)
   {
+    msf = #update_msf((i < N), msf);
     for k = 0 to 5 {
       t[k] = (32u) a[(int) j]; j += 1;
     }	
@@ -458,12 +465,13 @@ inline fn __polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a) ->
     r[(int) i] = aux; i += 1;
     
   }
-  return r;
+  msf = #update_msf(!(i < N), msf);
+  return r, msf;
 }
 
-fn _polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a) -> reg ptr u32[N] {
-  r = __polyt1_unpack(r, a);
-  return r;
+fn _polyt1_unpack(reg ptr u32[N] r, reg ptr u8[POLYT1_PACKEDBYTES] a, reg u32 msf) -> reg ptr u32[N], reg u32 {
+  r, msf = __polyt1_unpack(r, a, msf);
+  return r, msf;
 }
 
 /*************************************************
