@@ -82,7 +82,7 @@ inline fn __decompose_a0a1(reg u32 a q) -> reg u32, reg u32
 * Returns corrected high bits.
 **************************************************/
 // Precondition q = Q
-inline fn __use_hint(reg u32 a, reg u32 hint, reg u32 q) -> reg u32 {
+inline fn __use_hint(reg u32 a, reg u32 hint, reg u32 q, #msf reg u32 msf) -> reg u32, #msf reg u32 {
   reg u32 a0 a1;
   reg u32 r;
   r = 0;
@@ -90,30 +90,52 @@ inline fn __use_hint(reg u32 a, reg u32 hint, reg u32 q) -> reg u32 {
   a0, a1 = __decompose_a0a1(a, q);
 
   if (hint == 0) {
+    msf =  #update_msf(hint == 0, msf);
     r = 1;
+  } else {
+    msf =  #update_msf(!(hint == 0), msf);
   }
 
   if (r == 0) {
+    msf =  #update_msf((r == 0), msf);
     if (a0 >s 0) {
-      if (a1 == 43) {
+      msf =  #update_msf((a0 >s 0), msf);
+      reg u32 tmp43 = 43;
+      if (a1 == tmp43) {
+        msf =  #update_msf((a1 == tmp43), msf);
         a1 = 0;
       } else {
+        msf =  #update_msf(!(a1 == tmp43), msf);
         a1 += 1;
       }
       r = 1;
+    } else {
+      msf =  #update_msf(!(a0 >s 0), msf);
     }
 
     if (r == 0) {
+    msf =  #update_msf((r == 0), msf);
       if (a1 == 0) {
+        msf =  #update_msf((a1 == 0), msf);
         a1 = 43;
         r = 1;
+      } else {
+        msf =  #update_msf(!(a1 == 0), msf);
+        a1 += 1;
       }
+    } else {
+      msf =  #update_msf(!(r == 0), msf);
     }
 
     if (r == 0) {
+      msf = #update_msf((r == 0), msf);
       a1 -=1 ;
+    } else {
+      msf = #update_msf(!(r == 0), msf);
     }
+  } else {
+    msf =  #update_msf(!(r == 0), msf);
   }
 
-  return a1;
+  return a1, msf;
 }
