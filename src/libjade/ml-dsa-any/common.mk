@@ -1,8 +1,9 @@
 # Configure the target architecture and which compiler to use assemble
 ifeq ($(arch), risc-v)
 	CC := riscv64-unknown-linux-gnu-gcc
-	CFLAGS ?= -Wall -O1 -march=rv32im -mabi=ilp32
-	AR := riscv64-unknown-linux-gnu-ar
+	CFLAGS ?= -Wall -march=rv32im -mabi=ilp32
+	AR := ar
+	AS := as-new
 
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Darwin)
