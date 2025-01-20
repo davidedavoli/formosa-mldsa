@@ -166,6 +166,7 @@ fn _pack_sig(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u8[CTILDEBYTES] 
        j = 0;
        while (j < N) {
          hj = nh[j];
+         hj = #dfence(hj);
          if hj != 0 {
            pptsig[k] = j;
            k += 1;

@@ -301,6 +301,8 @@ fn _shake256_inc_absorb_mem
       pstate = _keccakf1600_ref(pstate);
       () = #unspill(m, mlen);
       pos = 0;
+      m = #dfence(m);
+      mlen = #dfence(m);
     }
     // FIXME: it will be good to be able to write (SHAKE256_RATE < mlen)
     (mlen > SHAKE256_RATE)
@@ -421,6 +423,8 @@ fn _shake256_inc_absorb_KPOLYW1_PACKEDBYTES
     () = #spill(m, i);
     pstate = _keccakf1600_ref(pstate);
     () = #unspill(m, i);
+    m = #dfence_ptr(m);
+    i = #dfence(i);
     pos = 0;
   }
   (i < K * POLYW1_PACKEDBYTES)
