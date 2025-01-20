@@ -18,7 +18,7 @@ OBJ_JASMIN_FILES := $(JASMIN_FILES:%.jazz=%_jazz.o)
 #-------------------------------------------------------------------------------
 
 $(JASMIN_OBJECTS): library_export_$(arch).s
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(AS) $(CFLAGS) -c -o $@ $<
 
 $(ASM_JASMIN_FILES):
 %.s: %.jazz
