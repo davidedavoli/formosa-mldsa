@@ -121,7 +121,7 @@ inline fn __use_hint(reg u32 a, reg u32 hint, reg u32 q, #msf reg u32 msf) -> re
         r = 1;
       } else {
         msf =  #update_msf(!(a1 == 0), msf);
-        a1 += 1;
+//      a1 += 1;
       }
     } else {
       msf =  #update_msf(!(r == 0), msf);
