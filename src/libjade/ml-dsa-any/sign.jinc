@@ -42,8 +42,8 @@ fn _shake256_PUBLICKEYBYTES_TRBYTES(reg ptr u8[TRBYTES] outp,
     () = #spill(i, inp);
     pstate = _keccakf1600_ref(pstate);
     () = #unspill(i, inp);
-    i = #dfence(i);
-    inp = #dfence_ptr(inp);
+    () = #fence();	
+
   }
 
   j = 0;
@@ -69,7 +69,8 @@ fn _shake256_PUBLICKEYBYTES_TRBYTES(reg ptr u8[TRBYTES] outp,
   pstate = _keccakf1600_ref(pstate);
 
   () = #unspill(outp);
-  outp=#dfence_ptr(outp);
+  () = #fence();	
+	
   // FIXME this copy is not necessary if we return pstate, in that case it should be taken as argument
   i = 0;
   while (i < TRBYTES / 4) {
@@ -121,6 +122,8 @@ fn _crypto_sign_keypair_seed(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, 
     stack u32[polyvecl] s1, s1hat;
     stack u32[polyveck] s2, t1, t0;
 
+    () = #fence();
+
     /****
     * Implements shake256(seedbuf, 2 * SEEDBYTES + CRHBYTES, seedbuf, SEEDBYTES);
     ****/
@@ -128,7 +131,7 @@ fn _crypto_sign_keypair_seed(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, 
     reg ptr u32[PQC_SHAKECTX_BYTES*2] pstate;
     pstate = state;
 
-    seedbuf = #dfence_ptr(seedbuf);
+
     () = #spill(pk, sk);
     pstate = __SHAKE256_init_seed_ref(pstate, seedbuf);
     state = pstate;
@@ -167,7 +170,8 @@ fn _crypto_sign_keypair_seed(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, 
     t1, t0 = _polyveck_power2round_inplace(t1, t0);
 
     () = #unspill(pk);
-    pk = #dfence_ptr(pk);
+    () = #fence();
+
     rho = state[u8 0:SEEDBYTES];
     //() = #spill(s1, s2);
     pk = _pack_pk(pk, rho, t1);
@@ -181,7 +185,8 @@ fn _crypto_sign_keypair_seed(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, 
     key = state[u8 SEEDBYTES + CRHBYTES : SEEDBYTES];
 
     () = #unspill(sk);
-    sk = #dfence_ptr(sk);
+    () = #fence();
+
     sk = _pack_sk(sk, rho, tr, key, t0, s1, s2);
     () = #unspill(pk);
     
@@ -249,7 +254,9 @@ fn _crypto_sign_keypair(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, reg p
     t1, t0 = _polyveck_power2round_inplace(t1, t0);
 
     () = #unspill(pk);
-    pk = #dfence_ptr(pk);
+    () = #fence();
+
+
     rho = state[u8 0:SEEDBYTES];
     //() = #spill(s1, s2);
     pk = _pack_pk(pk, rho, t1);
@@ -258,7 +265,8 @@ fn _crypto_sign_keypair(reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk, reg p
     () = #spill(pk);
     tr = _shake256_PUBLICKEYBYTES_TRBYTES(tr, pk);
     () = #unspill(sk);
-    sk = #dfence_ptr(sk);
+    () = #fence();
+
     reg ptr u8[SEEDBYTES] key;
 
     rho = state[u8 0:SEEDBYTES];
@@ -300,6 +308,7 @@ fn _shake256_inc_absorb_mem
       () = #spill(m, mlen);
       pstate = _keccakf1600_ref(pstate);
       () = #unspill(m, mlen);
+      () = #fence();
       pos = 0;
     }
     // FIXME: it will be good to be able to write (SHAKE256_RATE < mlen)
@@ -354,8 +363,8 @@ fn _shake256_inc_absorb_mem_naive
       () = #spill(m, mlen);
       pstate = _keccakf1600_ref(pstate);
       () = #unspill(m, mlen);
-      mlen = #dfence(mlen);
-      m = #dfence(m);
+      () = #fence();
+
       pos = 0;
     }
 
@@ -391,8 +400,8 @@ inline fn _shake256_inc_absorb_KPOLYW1_PACKEDBYTES_naive
       () = #spill(ctr, pos, m);
       pstate = _keccakf1600_ref(pstate);
       () = #unspill(ctr, pos, m);
-      ctr = #dfence(ctr);
-      m = #dfence_ptr(m);
+      () = #fence();
+
       pos = 0;
     }
   }
@@ -421,6 +430,7 @@ fn _shake256_inc_absorb_KPOLYW1_PACKEDBYTES
     () = #spill(m, i);
     pstate = _keccakf1600_ref(pstate);
     () = #unspill(m, i);
+    () = #fence();
     pos = 0;
   }
   (i < K * POLYW1_PACKEDBYTES)
@@ -481,8 +491,8 @@ fn _crypto_sign_signature_ctx
    -> #secret reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES], #public reg u32
 {
   sig = sig; ctx_m = ctx_m; ctxlen_mlen_siglen = ctxlen_mlen_siglen; sk = sk;
-  sk = #dfence_ptr(sk);   
-  ctx_m = #dfence_ptr(ctx_m);   
+   
+   
   reg u32 status;
   stack u8[SEEDBYTES] s_rho;
   stack u8[TRBYTES] s_tr;
@@ -507,10 +517,10 @@ fn _crypto_sign_signature_ctx
   inline int i;
 
   status = 0;
-
-  ctxlen_mlen_siglen = #dfence_ptr(ctxlen_mlen_siglen);
+  
+  () = #fence();
   ctxlen = ctxlen_mlen_siglen[0];
-  ctxlen = #dfence(ctxlen);
+
 
   if (ctxlen > 255) { status = - 1; }
 
@@ -518,10 +528,10 @@ fn _crypto_sign_signature_ctx
 
   rho = s_rho; tr = s_tr; key = s_key_rnd_mu[0:SEEDBYTES];
   t0 = s_t0; s1 = s_s1; s2 = s_s2;
-
+  
   () = #spill(sig, status, ctxlen);
   (rho, tr, key, t0, s1, s2) = _unpack_sk(rho, tr, key, t0, s1, s2, sk);
-  tr  =  #dfence_ptr(tr);
+
   #declassify rho = rho; // rho goes to the public key
   s_rho = rho; s_t0 = t0; s_s1 = s1; s_s2 = s2;
   s_key_rnd_mu[0:SEEDBYTES] = key;
@@ -534,24 +544,28 @@ fn _crypto_sign_signature_ctx
   s_key_rnd_mu[SEEDBYTES + RNDBYTES : 2] = mu2;
 
   pstate = state;
+  () = #fence();
+
   // TRBYTES (64) + 2 < SHAKE256_RATE (136)
   pstate = __add_crh_ref(pstate, tr); // TRBYTES = CRHBYTES
   pstate = __add_mu_ref(pstate, TRBYTES, mu2); // 2
   pstate = __add_zero_after_add_naive(pstate, TRBYTES + 2);
   pos = TRBYTES + 2;
   ctx = ctx_m[0];
-  ctx = #dfence(ctx);
+  () = #fence();
+
   () = #spill(ctx_m, ctxlen_mlen_siglen);
   () = #unspill(ctxlen);
-  ctxlen = #dfence(ctxlen);
+
   pstate, pos = _shake256_inc_absorb_mem_naive(pstate, pos, ctx, ctxlen);
   () = #unspill(ctx_m, ctxlen_mlen_siglen);
-  ctx_m =  #dfence_ptr(ctx_m);
-  ctxlen_mlen_siglen = #dfence_ptr(ctxlen_mlen_siglen);
+  () = #fence();
+
+
   mlen = ctxlen_mlen_siglen[1];
-  mlen =  #dfence(mlen);
+
   m = ctx_m[1];
-  m =  #dfence(m);
+
   
   pstate, pos = _shake256_inc_absorb_mem_naive(pstate, pos, m, mlen);
   pstate = _shake256_inc_finalize(pstate, pos);
@@ -622,9 +636,10 @@ fn _crypto_sign_signature_ctx
     w1, s_w0 = _polyveck_decompose_inplace(w1, w0);
     s_w1 = w1;
     () = #unspill(sig);
-    sig = #dfence_ptr(sig);
+
     reg ptr u8[K * POLYW1_PACKEDBYTES] sig1;
     sig1 = sig[0: K * POLYW1_PACKEDBYTES];
+    () = #fence();
     sig1 = _polyveck_pack_w1(sig1, w1);
     sig[0: K * POLYW1_PACKEDBYTES] = sig1;
     () = #spill(sig);
@@ -639,8 +654,9 @@ fn _crypto_sign_signature_ctx
 
     reg ptr u8[CTILDEBYTES] sigctilde;
     () = #unspill(sig);
-    sig = #dfence_ptr(sig);
+
     sigctilde = sig[0:CTILDEBYTES];
+    () = #fence();
     for i = 0 to CTILDEBYTES/4 {
       t = pstate[i];
       sigctilde[u32 i] = t;
@@ -697,7 +713,7 @@ fn _crypto_sign_signature_ctx
           s_w0 = w0; w1 = s_w1;
           reg u32 n;
           n, h = _polyveck_make_hint(h, w0, w1); s_h = h;
-	  n = #dfence(n);
+	
           inline bool test;
           #declassify test = __cmp_lt_u_imm(OMEGA, n); // OMEGA < n; 
           // if (n > OMEGA) 
@@ -705,7 +721,7 @@ fn _crypto_sign_signature_ctx
             continue = 1;
           } else {
             () = #unspill(sig);
-	    sig = #dfence_ptr(sig);
+	    () = #fence();
             sig = _pack_sig_nocopy(sig, s_z, h);
             () = #spill(sig);
             continue = 0;
@@ -716,9 +732,9 @@ fn _crypto_sign_signature_ctx
   } (continue == 1)
   status = 0;
   () = #unspill(sig);
-  sig = #dfence_ptr(sig);
+
   }
-  sig = #dfence_ptr(sig);
+  () = #fence();
   return sig, status;
 }
 
@@ -748,8 +764,8 @@ fn _crypto_sign_signature_ctx_seed
 {
   sig = sig; ctx_m_rand = ctx_m_rand; ctxlen_mlen_siglen = ctxlen_mlen_siglen; sk = sk;
 
-  ctxlen_mlen_siglen = #dfence_ptr(ctxlen_mlen_siglen);
-  ctx_m_rand = #dfence_ptr(ctx_m_rand);
+
+
   sk = # dfence_ptr(sk);
   
   reg u32 status;
@@ -777,23 +793,25 @@ fn _crypto_sign_signature_ctx_seed
   
   status = 0;
 
+  () = #fence();
   ctxlen = ctxlen_mlen_siglen[0];
-  ctxlen = #dfence(ctxlen);
+
 
   if (ctxlen > 255) { status = - 1; }
 
   if (status == 0) {
 
   rho = s_rho; tr = s_tr;
-  tr = #dfence_ptr(tr);
+
   key = s_key_rnd_mu[0:SEEDBYTES];
   t0 = s_t0; s1 = s_s1; s2 = s_s2;
 
   () = #spill(sig, status, ctxlen);
   (rho, tr, key, t0, s1, s2) = _unpack_sk(rho, tr, key, t0, s1, s2, sk);
-  tr = #dfence_ptr(tr);
+
   s_rho = rho; s_tr = tr; s_t0 = t0; s_s1 = s1; s_s2 = s2;
   s_key_rnd_mu[0:SEEDBYTES] = key;
+  () = #fence();
 
   mu2 = s_key_rnd_mu[SEEDBYTES + RNDBYTES : 2];
   t = 0;
@@ -809,24 +827,26 @@ fn _crypto_sign_signature_ctx_seed
   pstate = __add_zero_after_add_naive(pstate, TRBYTES + 2);
   pos = TRBYTES + 2;
   ctx = ctx_m_rand[0];
-  ctx = #dfence(ctx);
+  () = #fence();
+
   () = #spill(ctx_m_rand, ctxlen_mlen_siglen);
   () = #unspill(ctxlen);
-  ctxlen = #dfence(ctxlen);
+
   pstate, pos = _shake256_inc_absorb_mem_naive(pstate, pos, ctx, ctxlen);
   () = #unspill(ctx_m_rand, ctxlen_mlen_siglen);
-  ctx_m_rand = #dfence_ptr(ctx_m_rand);
-  ctxlen_mlen_siglen = #dfence_ptr(ctxlen_mlen_siglen);
+  () = #fence();
+
+
   mlen = ctxlen_mlen_siglen[1];
-  mlen = #dfence(mlen);
+
   m = ctx_m_rand[1];
-  m = #dfence(m);
+
   () = #spill(ctx_m_rand);
   pstate, pos = _shake256_inc_absorb_mem_naive(pstate, pos, m, mlen);
   pstate = _shake256_inc_finalize(pstate, pos);
   pstate = _keccakf1600_ref(pstate);
   () = #unspill(ctx_m_rand);
-  ctx_m_rand = #dfence_ptr(ctx_m_rand);
+
   
   // FIXME define a function for that
   mu = s_key_rnd_mu[SEEDBYTES + RNDBYTES : CRHBYTES];
@@ -837,8 +857,9 @@ fn _crypto_sign_signature_ctx_seed
   s_key_rnd_mu[SEEDBYTES + RNDBYTES : CRHBYTES] = mu;
 
   rnd = s_key_rnd_mu[SEEDBYTES : RNDBYTES];
+  () = #fence();
   reg u32 rand = ctx_m_rand[2];
-  rand = #dfence(rand);
+
   for i = 0 to RNDBYTES/4 {
     t = (u32)[rand + 4*i];
     rnd[u32 i] = t;
@@ -898,9 +919,10 @@ fn _crypto_sign_signature_ctx_seed
     w1, s_w0 = _polyveck_decompose_inplace(w1, w0);
     s_w1 = w1;
     () = #unspill(sig);
-    sig = #dfence_ptr(sig);
+
     reg ptr u8[K * POLYW1_PACKEDBYTES] sig1;
     sig1 = sig[0: K * POLYW1_PACKEDBYTES];
+    () = #fence();
     sig1 = _polyveck_pack_w1(sig1, w1);
     sig[0: K * POLYW1_PACKEDBYTES] = sig1;
     () = #spill(sig);
@@ -917,7 +939,8 @@ fn _crypto_sign_signature_ctx_seed
     reg ptr u8[CTILDEBYTES] sigctilde;
     () = #unspill(sig);
     sigctilde = sig[0:CTILDEBYTES];
-    sigctilde = #dfence_ptr(sigctilde);
+    () = #fence();
+
     for i = 0 to CTILDEBYTES/4 {
       t = pstate[i];
       sigctilde[u32 i] = t;
@@ -974,12 +997,13 @@ fn _crypto_sign_signature_ctx_seed
           s_w0 = w0; w1 = s_w1;
           reg u32 n;
           n, h = _polyveck_make_hint(h, w0, w1); s_h = h;
-	  n = #dfence(n);
+	
           if (n > OMEGA) {
             continue = 1;
           } else {
             () = #unspill(sig);
-	    sig = #dfence_ptr(sig);
+	    () = #fence();
+	
             sig = _pack_sig_nocopy(sig, s_z, h);
             () = #spill(sig);
             continue = 0;
@@ -991,7 +1015,7 @@ fn _crypto_sign_signature_ctx_seed
   status = 0;
   () = #unspill(sig);
   }
-  sig = #dfence_ptr(sig);
+  () = #fence();
   return sig, status;
 }
 
@@ -1037,9 +1061,9 @@ fn _crypto_sign(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sm, reg u8 m, reg ptr u32[
 fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u32[2] ctx_m, reg ptr u32[3] ctxlen_mlen_siglen, reg ptr u8[JASMIN_MLDSA_CRYPTO_PUBLICKEYBYTES] pk) -> reg u32 {
     reg u32 status;
 
-    ctxlen_mlen_siglen = #dfence_ptr(ctxlen_mlen_siglen);
-    pk = #dfence_ptr(pk);
-    sig = #dfence_ptr(sig);
+
+
+
 
     stack u8[SEEDBYTES] rho;
     stack u8[CRHBYTES] mu;
@@ -1059,11 +1083,12 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
     inline int i;
 
     status = 0;
+    () = #fence();
 
     ctxlen = ctxlen_mlen_siglen[0];
-    ctxlen = #dfence(ctxlen);
+
     siglen = ctxlen_mlen_siglen[2];
-    siglen = #dfence(siglen);
+
 
     if (ctxlen > 255) { status = - 1; }
 
@@ -1082,8 +1107,9 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
     // previous function.
     () = #unspill(pk);
     () = #unspill(status);
-    status = #dfence(status);
-    pk = #dfence_ptr(pk);
+    () = #fence();
+
+
     () = #spill(sig);
 
     //FIXME for arm or improve riscv suport
@@ -1107,8 +1133,9 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
         pstate = __add_crh_ref(pstate, mu); // TRBYTES = CRHBYTES
 
         () = #unspill(ctxlen_mlen_siglen, ctx_m);
-	ctx_m = #dfence_ptr(ctx_m);
-	ctxlen_mlen_siglen = #dfence_ptr(ctxlen_mlen_siglen);
+ 	() = #fence();
+
+	
         mu2 = mu[0 : 2];
         t = 0;
         mu2[0] = (8u)t;
@@ -1122,18 +1149,20 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
         pstate = __add_zero_after_add_naive(pstate, TRBYTES + 2);
         pos = TRBYTES + 2;
         ctx = ctx_m[0];
-	ctx = #dfence(ctx);
+	() = #fence();
+	
         () = #spill(ctx_m, ctxlen_mlen_siglen);
         () = #unspill(ctxlen);
-	ctxlen = #dfence(ctxlen);
+	
         pstate, pos = _shake256_inc_absorb_mem_naive(pstate, pos, ctx, ctxlen);
         () = #unspill(ctx_m, ctxlen_mlen_siglen);
-	ctxlen_mlen_siglen = #dfence_ptr(ctxlen_mlen_siglen);
-	ctx_m = #dfence_ptr(ctx_m);
+  	() = #fence();
+
+	
         mlen = ctxlen_mlen_siglen[1];
-	mlen = #dfence(mlen);
+	
         m = ctx_m[1];
-	m = #dfence(m);
+	
         pstate, pos = _shake256_inc_absorb_mem_naive(pstate, pos, m, mlen);
         pstate = _shake256_inc_finalize(pstate, pos);
         pstate = _keccakf1600_ref(pstate);
@@ -1186,14 +1215,14 @@ fn _crypto_sign_verify_ctx(reg ptr u8[JASMIN_MLDSA_CRYPTO_BYTES] sig, reg ptr u3
 	
         // FIXME : must break early if needed
         () = #unspill(status);
-	status = #dfence(status);
+	() = #fence();
+	
         reg u32 ci c2i;
         for i = 0 to CTILDEBYTES {
           if (status == 0) {
             ci = (32u)c[i];
-	    ci = #dfence(ci);
 	    c2i = (32u)c2[i];
-	    c2i = #dfence(c2i);
+  	    () = #fence();
             if (ci != c2i) {
               status = i + 1;
             }

@@ -63,7 +63,7 @@ inline fn __cmp_ge_s(reg u32 in_1, reg u32 in_2) -> inline bool {
   reg  u32 ge z;
   z = 1;
   #declassify ge = #SLT(in_1, in_2);
-  ge = #dfence(ge);
+  () = #fence();
   b = ge <u z;
   return b;
 } 
@@ -90,12 +90,12 @@ inline fn __cmp_lt_u_imm(inline u32 in_1, reg u32 in_2) -> inline bool {
 
 
 
-inline fn __cmp_b(reg u32 in_1, reg u32 in_2) -> inline bool {
+inline fn __cmp_b(#secret reg u32 in_1, reg u32 in_2) -> inline bool {
   inline bool b;
   reg u32 x z;
   z = 1;
   #declassify x  =  #SLTU(in_1, in_2);
-  x = #dfence(x);
+  () = #fence();
   b = (x == z);
   return b;
 }

@@ -256,7 +256,7 @@ inline fn __set_row_ref(
     }
 
     e = e_s;
-    e = #dfence_ptr(e);
+
     e[2*(x + y*5)+0] = t0;
     e[2*(x + y*5)+1] = t1;
     e_s = e;
@@ -282,6 +282,7 @@ inline fn __round_ref(reg ptr u32[25*2] e a, reg u32 rc0 rc1) -> reg ptr u32[25*
 
   for y = 0 to 5
   { b = __rol_sum_ref(a, d, y);
+    ()= #fence();
     e_s = __set_row_ref(e_s, b, y, rc0_s, rc1_s);
   }
 
@@ -312,7 +313,7 @@ inline fn __get_RC(
 
   
   RC = s_RC;
-  RC = #dfence_ptr(RC);
+  () = #fence();
 
   rc0 = RC[(int) c];
   c += 1;
@@ -340,7 +341,7 @@ inline fn __keccakf1600_ref(reg ptr u32[25*2] a) -> reg ptr u32[25*2]
   c = 0;
   reg u32 keccak_roundsx2;
   keccak_roundsx2 = KECCAK_ROUNDS*2;
-  a = #dfence_ptr(a);
+
 
   while (c < keccak_roundsx2)
   {
@@ -349,19 +350,20 @@ inline fn __keccakf1600_ref(reg ptr u32[25*2] a) -> reg ptr u32[25*2]
 
     reg ptr u32[25*2] tmp;
     tmp = a; e = e;
-    e = #dfence_ptr(e);
+
     a = tmp;
     
     // a_s = a; s_e = e; // swap 'e' and 'a' (in practice this is just "pointer swapping", to do, improve)
     // a = a_s; e = s_e;
-    // a = #dfence_ptr(a);
+    //
 
     c = c_s;
-    c = #dfence(c);				     
+  () = #fence();
+				     
     rc1, rc0, c = __get_RC(RC_s, c);
     c_s = c;
     a = _round_ref(a, e, rc0, rc1);
-    a = #dfence_ptr(a);
+
 
     // a_s = a; s_e = e; // swap again
     // a = a_s; e = s_e;
@@ -369,7 +371,7 @@ inline fn __keccakf1600_ref(reg ptr u32[25*2] a) -> reg ptr u32[25*2]
     a = tmp;
 
     c = c_s;
-    c = #dfence(c);
+    () = #fence();
   }
 
   return a;

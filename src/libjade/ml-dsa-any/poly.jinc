@@ -236,14 +236,15 @@ fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed) -> reg ptr u3
   // equivalent to shake256_inc_absorb_jazz(state, seed, SEEDBYTES) and shake256_inc_finalize_jazz(state)
   state = __SHAKE256_init_ctilde_ref(state, seed);
   c = cs;
-  c = #dfence_ptr(c);
+  () = #fence();
+
 
   reg u32[2] signs;
   stack u32[2] s_signs;
   stack u32 js;
 
   reg u32 aux, pos, i;
-  state = #dfence_ptr(state);
+
   signs[0] = state[u32 0];
   signs[1] = state[u32 1];
 
@@ -271,10 +272,11 @@ fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed) -> reg ptr u3
           pos = 0;
       }
 
-      j = #dfence(j);
+
       b = (32u) state[u8 (int) pos];
       #declassify b = b; // This come from a rejection sampling arguments
-      b = #dfence(b);
+      () = #fence();
+
       
       
       /* We can certainly declassify the value of b */
@@ -285,8 +287,8 @@ fn _poly_challenge(reg ptr u32[N] c, reg ptr u8[CTILDEBYTES] seed) -> reg ptr u3
     } (test)
 
     #declassify b = b; // This come from a rejection sampling arguments
-    b = #dfence(b);
-    c = #dfence_ptr(c);
+
+
     aux = c[(int) b];
     c[(int) j] = aux;
 
@@ -361,9 +363,10 @@ inline fn __poly_use_hint_inplace(reg ptr u32[N] b, reg ptr u32[N] h) -> reg ptr
   i = 0;
   while(i < N) {
     b_ = b[(int) i];
-    b_ = #dfence(b_);
+
     h_ = h[(int) i];
-    h_ = #dfence(h_);
+    () = #fence();
+
     b_ = __use_hint(b_, h_, q);
     b[(int) i] = b_;
     i += 1;
