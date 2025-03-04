@@ -40,13 +40,14 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
       () = #spill(sig, z);
       nz = _polyz_unpack(nz, nsig);
       () = #unspill(sig, z);
-      sig = #dfence_ptr(sig);
-      z = #dfence_ptr(z);
+
+
       z[i * N: N] = nz;
       start_pos += POLYZ_PACKEDBYTES;
     }
 
     () = #unspill(c, h);
+    () = #fence();
     status = 0;
     r0 = 0;
     r1 = 1;
@@ -56,7 +57,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
 
       if (status == 0) { 
         nh = h[i * N: N];
-	nh = #dfence_ptr(nh);
+	
         // FIXME : introduce a local function to not duplicate the code
         j = 0;
         // FIXME improve this loop
@@ -65,7 +66,8 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
           j += 1;
         } 
         sroi = (32u)pptsig[OMEGA + i];
-	sroi = #dfence(sroi);
+        () = #fence();
+	
         if (sroi <32u k) {
            status = 1;
         }
@@ -76,14 +78,16 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
         if (status == 0) {
           j = k;
           sjm1 = (32u)pptsig[j];
-	  sjm1 = #dfence(sjm1);
+	
 	  if (j <32u sroi) {
+            () = #fence();
             nh[sjm1] = r1;
 	  }
           j += 1; 
           // this is safe because j = k <= OMEGA < OMEGA + K
           sj = (32u)pptsig[j];
-	  sj = #dfence(sj);
+	  () = #fence();
+	
           while (j <32u sroi) {
             if (sj <=32u sjm1) { 
               status = 1;
@@ -95,7 +99,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
               sjm1 = sj;
               // this is safe because j <= sroi <= OMEGA < OMEGA + K
               sj = (32u)pptsig[j];
-	      sj = #dfence(sj);
+	      () = #fence();
             }              
           }
 
@@ -111,7 +115,8 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
       j = k;
       while(j <32u OMEGA) {
         sj = (32u)pptsig[j];
-        sj = #dfence(sj);
+        () = #fence();
+
 
         if (sj != 0) {
           j = OMEGA;
