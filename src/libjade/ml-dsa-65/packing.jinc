@@ -42,7 +42,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
     }
 
     () = #unspill(c, h);
-    h = #dfence_ptr(h);
+    () = #fence();
     status = 0;
     r0 = 0;
     r1 = 1;
@@ -60,7 +60,8 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
           j += 1;
         } 
         sroi = (32u)pptsig[OMEGA + i];
-	sroi = #dfence(sroi);
+	() = #fence();
+	
         if (sroi <32u k) {
            status = 1;
         }
@@ -71,16 +72,17 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
         if (status == 0) {
           j = k;
           sjm1 = (32u)pptsig[j];
-	  sjm1 = #dfence(sjm1);
+	  () = #fence();
 	  if (j <32u sroi) {
             nh[sjm1] = r1;
 	  }
           j += 1; 
           // this is safe because j = k <= OMEGA < OMEGA + K
           sj = (32u)pptsig[j];
-	  sj = #dfence(sj);
+          
           while (j <32u sroi) {
-            if (sj <=32u sjm1) { 
+            () = #fence();
+	    if (sj <=32u sjm1) { 
               status = 1;
               j = sroi; // exit loop
             } else {
@@ -90,7 +92,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
               sjm1 = sj;
               // this is safe because j <= sroi <= OMEGA < OMEGA + K
               sj = (32u)pptsig[j];
-	      sj = #dfence(sj);
+	
             }              
           }
 
@@ -106,7 +108,7 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
       j = k;
       while(j <32u OMEGA) {
         sj = (32u)pptsig[j];
-        sj = #dfence(sj);
+	() = #fence();
         if (sj != 0) {
           j = OMEGA;
           status = 1; 
