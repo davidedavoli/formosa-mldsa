@@ -20,8 +20,8 @@ fn _unpack_sig(reg ptr u8[CTILDEBYTES] c,
          reg ptr u8[CTILDEBYTES], reg ptr u32[polyvecl], reg ptr u32[polyveck], reg u32 {
     // fixme this should be in the export function not here
     sig = sig; c = c; z = z; h = h;
-    z = #dfence_ptr(z);
-    sig = #dfence_ptr(sig);
+
+
     
     reg u32 status, r0, r1, j, sj, sjm1, sroi, k;
     inline int i;
