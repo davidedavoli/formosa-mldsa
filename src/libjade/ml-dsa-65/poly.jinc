@@ -684,7 +684,7 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
     for i = 0 to 8 {
       if ((i == 0) || (ctr < N)) {
         t = __ubfx(buf, 4*i, 4);
-        () = #fence();
+
         a, ctr = rej_eta(a, ctr, t, n205);
       }
     }       
