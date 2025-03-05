@@ -801,7 +801,7 @@ fn _poly_uniform_eta(reg ptr u32[N] a,
       t = __ubfx(buf, 4*i, 4);
       a, ctr = rej_eta(a, ctr, t, n205);
     }     
-   () = #fence();
+
  }
 
   while (ctr < N) {
