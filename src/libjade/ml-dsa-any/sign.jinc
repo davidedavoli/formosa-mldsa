@@ -766,7 +766,7 @@ fn _crypto_sign_signature_ctx_seed
 
 
 
-  // sk = #dfence_ptr(sk);
+
   
   reg u32 status;
   stack u8[SEEDBYTES] s_rho;
