@@ -191,14 +191,18 @@ inline fn __poly_chknorm(reg ptr u32[N] a, reg u32 B) -> reg u32 {
 
 
 
-    inline bool ge;
+    inline u32 ge;
     #declassify ge = __cmp_ge_s(t, B);
-
     
-    if (ge) { 
-      r = 1;
-      i = N;
-    } 
+    // if (ge) { 
+    //   r = 1;
+    //   i = N;
+    // } 
+    r = ge;
+    reg u32 tmpN = N * ge;
+    reg u32 tmp = 1 - ge;
+    tmp = tmp * i;
+    i = tmp + tmpN;
 
   } (i != N)
 

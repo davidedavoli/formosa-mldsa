@@ -58,13 +58,14 @@ inline fn __set_if_true_plus_imm(reg u32 in, inline int i, inline bool b) -> reg
   return out;
 }
 
-inline fn __cmp_ge_s(reg u32 in_1, reg u32 in_2) -> inline bool { 
-  inline bool b;
+inline fn __cmp_ge_s(reg u32 in_1, reg u32 in_2) -> inline u32 { 
+  inline u32 b;
   reg  u32 ge z;
   z = 1;
   #declassify ge = #SLT(in_1, in_2);
   ge = #dfence(ge);
-  b = ge <u z;
+  // b = ge <u z;
+   b = #SLTU(ge, z);
   return b;
 } 
 
